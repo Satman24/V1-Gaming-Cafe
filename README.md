@@ -18,4 +18,4 @@ Follow these steps to run this project on your machine:
 
 1. **Clone the repository:**
    ```bash
-   git clone <unga_github_repo_link_inge_podunga>
+   git clone <https://github.com/Satman24/V1-Gaming-Cafe/tree/main>
