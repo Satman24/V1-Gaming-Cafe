@@ -1,0 +1,1821 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+    <title>V1 Gaming Cafe - Master Edition</title>
+    
+    <!-- Stable Cloudflare CDNs -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.development.js" crossorigin></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.development.js" crossorigin></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.6/babel.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <!-- PDF Generator CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Poppins:wght@300;400;500;600;700&display=swap');
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #050505;
+            background-image:
+                radial-gradient(circle at 10% 20%, rgba(239, 68, 68, 0.08) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(239, 68, 68, 0.05) 0%, transparent 45%);
+            background-attachment: fixed;
+            color: #f3f4f6;
+            overflow-x: hidden;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .glass-panel { 
+            background: rgba(18, 18, 18, 0.6); 
+            backdrop-filter: blur(14px); 
+            -webkit-backdrop-filter: blur(14px); 
+            border: 1px solid rgba(255, 255, 255, 0.06); 
+            box-shadow: 0 8px 32px 0 rgba(0,0,0,0.37); 
+        }
+
+        .sidebar-slide { 
+            transition: transform 0.5s cubic-bezier(0.25, 0.8, 0.25, 1), box-shadow 0.5s ease-in-out; 
+        }
+
+        .glass-backdrop { 
+            background: rgba(0, 0, 0, 0.4); 
+            backdrop-filter: blur(8px); 
+            transition: all 0.5s ease; 
+        }
+
+        .glass-table-row { 
+            transition: all 0.3s ease; 
+        }
+
+        .glass-table-row:hover { 
+            background: rgba(239, 68, 68, 0.04); 
+            border-color: rgba(239, 68, 68, 0.2); 
+        }
+
+        .liquid-glow { 
+            position: fixed; width: 300px; height: 300px; 
+            background: linear-gradient(45deg, #ef4444, #991b1b); 
+            filter: blur(130px); border-radius: 50%; z-index: -1; opacity: 0.3; 
+            animation: floatGlow 12s infinite alternate ease-in-out; 
+        }
+
+        @keyframes floatGlow { 
+            0% { transform: translate(0, 0) scale(1); } 
+            100% { transform: translate(50px, 30px) scale(1.2); } 
+        }
+
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: rgba(20, 20, 20, 1); }
+        ::-webkit-scrollbar-thumb { background: rgba(239, 68, 68, 0.4); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(239, 68, 68, 0.7); }
+
+        .digital-clock { 
+            font-family: 'Orbitron', sans-serif; 
+            letter-spacing: 1px; 
+            text-shadow: 0 0 10px rgba(239, 68, 68, 0.5); 
+        }
+
+        select, input[type="date"], input[type="text"], input[type="number"], input[type="password"] { 
+            font-size: 16px !important; 
+        }
+
+        select { 
+            appearance: none; 
+            background-image: url("data:image/svg+xml;utf8,<svg fill='%23ef4444' height='24' viewBox='0 0 24 24' width='24' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/></svg>"); 
+            background-repeat: no-repeat; 
+            background-position: right 8px center; 
+            padding-right: 30px !important; 
+        }
+
+        input[type="date"]::-webkit-calendar-picker-indicator { 
+            filter: invert(1) sepia(1) saturate(5) hue-rotate(300deg); 
+            cursor: pointer; 
+        }
+
+        /* PRINT MEDIA CSS FOR INVOICE */
+        @media print {
+            body * { visibility: hidden; }
+            #printable-bill, #printable-bill * { visibility: visible; color: black !important; }
+            #printable-bill { 
+                position: absolute; 
+                left: 0; 
+                top: 0; 
+                width: 100%; 
+                max-width: 100%; 
+                margin: 0; 
+                padding: 20px; 
+                background: white !important; 
+                box-shadow: none; 
+                border: none; 
+            }
+            .no-print { display: none !important; }
+            body { background: white; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="root">
+        <div id="loader-spinner" style="color: #ef4444; text-align: center; margin-top: 25vh; font-family: sans-serif; font-weight: bold; font-size: 1.5rem; letter-spacing: 2px;">
+            <i class="fa-solid fa-spinner fa-spin mr-3"></i> Loading V1 Master App Engine...
+        </div>
+        <div id="loader-error" style="display: none; text-align: center; margin-top: 30px; font-family: sans-serif;">
+            <p style="color: #fca5a5; font-size: 14px; margin-bottom: 15px;">Memory buffer delayed. Force cache reset below.</p>
+            <button onclick="localStorage.clear(); window.location.reload();" style="background: #ef4444; color: white; border: none; padding: 12px 24px; border-radius: 8px; font-weight: bold; cursor: pointer;">
+                <i class="fa-solid fa-broom mr-2"></i> Clear Local Memory & Force Reload
+            </button>
+        </div>
+    </div>
+
+    <script>
+        setTimeout(function() {
+            var errDiv = document.getElementById('loader-error');
+            var loaderDiv = document.getElementById('loader-spinner');
+            if (errDiv && loaderDiv) {
+                errDiv.style.display = 'block';
+            }
+        }, 8000);
+    </script>
+
+    <script type="text/babel">
+        // ==========================================
+        // STABLE ANTI-CRASH SYSTEM DEFENDER
+        // ==========================================
+        class ErrorBoundary extends React.Component {
+            constructor(props) {
+                super(props);
+                this.state = { hasError: false, errorInfo: null };
+            }
+            static getDerivedStateFromError(error) {
+                return { hasError: true };
+            }
+            componentDidCatch(error, errorInfo) {
+                console.error("Crash captured:", error);
+                this.setState({ errorInfo: error.toString() + "\n" + errorInfo.componentStack });
+            }
+            render() {
+                if (this.state.hasError) {
+                    return (
+                        <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center p-6 text-center">
+                            <i className="fa-solid fa-shield-halved text-red-500 text-6xl mb-4 animate-pulse"></i>
+                            <h1 className="text-2xl font-bold text-white mb-2">System Protection Guard Active</h1>
+                            <p className="text-gray-400 mb-8 max-w-md">Data conflicts intercepted cleanly. Press reset to rebuild interface workspace safely.</p>
+                            <div className="text-[10px] text-red-900 mb-4 font-mono text-left bg-black/50 p-4 rounded overflow-auto max-w-2xl">{this.state.errorInfo}</div>
+                            <button 
+                                onClick={() => { localStorage.clear(); window.location.reload(); }} 
+                                className="bg-red-600 hover:bg-red-500 text-white font-bold py-4 px-8 rounded-xl"
+                            >
+                                Clear UI Cache & Rebuild Workspace
+                            </button>
+                        </div>
+                    );
+                }
+                return this.props.children; 
+            }
+        }
+
+        // ==========================================
+        // SUPABASE CLOUD CONFIG
+        // ==========================================
+        const SUPABASE_URL = 'https://vywsxyknwsnvmykgpcqo.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ5d3N4eWtud3Nudm15a2dwY3FvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyMzYzMjgsImV4cCI6MjA5NjgxMjMyOH0.vdxrTel52n-GpD7u-hhoG_TFVVOPfhO7qVS2bLZNuYc';
+        
+        let supabaseClient = null;
+        try {
+            if(typeof window.supabase !== 'undefined') {
+                supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            }
+        } catch (e) {
+            console.error("Supabase Init Error:", e);
+        }
+
+        const { useState, useEffect, useRef } = React;
+
+        const DEFAULT_SETTINGS = {
+            food: { "Normal Fries": 89, "Peri peri Fries": 99, "Masala Fries": 109, "Cheese Fries": 109, "Chicken nuggets": 119, "Potato nuggets": 109, "Veg momo": 109, "Chicken momo": 119, "chicken Popcorn": 119, "Fish finger": 170, "Chicken mini kievs": 119, "Crab lollipop 4": 170, "Crab lollipop 5": 190 },
+            juice: { "Sprite": 20, "Frooti": 10, "Fanta": 20, "Thumbs up": 20, "Coke": 20, "coke zero": 20, "Redbull": 120, "Hell": 60, "Smoodh": 20, "Water": 20 },
+            sales: {}, // Starts empty natively
+            modules: [
+                { name: "PS5", type: "pax", singleRate: 200, multiRate: 150 },
+                { name: "PS4", type: "pax", singleRate: 150, multiRate: 120 },
+                { name: "SIMULATOR", type: "flat", singleRate: 350, multiRate: 350 },
+                { name: "VR", type: "flat", singleRate: 200, multiRate: 200 },
+                { name: "PROJECTOR PS5", type: "pax", singleRate: 400, multiRate: 200 },
+                { name: "PARTY", type: "party", singleRate: 3000, multiRate: 2000 }
+            ]
+        };
+
+        const playAlertBeep = () => {
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                [440, 880].forEach((freq, idx) => {
+                    const osc = audioCtx.createOscillator(); 
+                    const gain = audioCtx.createGain();
+                    osc.type = 'sine'; 
+                    osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                    gain.gain.setValueAtTime(0.3, audioCtx.currentTime); 
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.8);
+                    osc.connect(gain); 
+                    gain.connect(audioCtx.destination);
+                    osc.start(audioCtx.currentTime + (idx * 0.1)); 
+                    osc.stop(audioCtx.currentTime + 0.8 + (idx * 0.1));
+                });
+            } catch (e) {}
+        };
+
+        const LiveClock = () => {
+            const [timeStr, setTimeStr] = useState("");
+            
+            useEffect(() => {
+                const updateClock = () => {
+                    const now = new Date(); 
+                    let hours = now.getHours();
+                    const minutes = String(now.getMinutes()).padStart(2, '0'); 
+                    const seconds = String(now.getSeconds()).padStart(2, '0');
+                    const ampm = hours >= 12 ? 'PM' : 'AM'; 
+                    hours = hours % 12; 
+                    hours = hours ? hours : 12;
+                    setTimeStr(`${String(hours).padStart(2, '0')}:${minutes}:${seconds} ${ampm}`);
+                };
+                updateClock(); 
+                const interval = setInterval(updateClock, 1000); 
+                return () => clearInterval(interval);
+            }, []);
+            
+            return (
+                <div className="digital-clock text-lg md:text-xl font-bold text-gray-100 bg-black/40 px-3 md:px-4 py-2 rounded-xl border border-red-500/20 whitespace-nowrap">
+                    {timeStr}
+                </div>
+            );
+        };
+
+        // Utility Functions
+        const getTodayDateInput = () => { 
+            const d = new Date(); 
+            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; 
+        };
+        
+        const formatDateForDisplay = (dateStr) => { 
+            if (!dateStr) return ""; 
+            if (dateStr.includes('/')) return dateStr.split('/').join('-'); 
+            const parts = dateStr.split('-'); 
+            if (parts.length === 3) return `${parts[2]}-${parts[1]}-${parts[0]}`; 
+            return dateStr; 
+        };
+        
+        const normalizeDate = (dateStr) => { 
+            if (!dateStr) return ""; 
+            if (dateStr.includes('/')) { 
+                const [d, m, y] = dateStr.split('/'); 
+                return `${y}-${m}-${d}`; 
+            } 
+            return dateStr; 
+        };
+        
+        const getCurrentTimeStr = () => { 
+            const now = new Date(); 
+            let hours = now.getHours(); 
+            const minutes = String(now.getMinutes()).padStart(2, '0'); 
+            const ampm = hours >= 12 ? 'PM' : 'AM'; 
+            hours = hours % 12; 
+            hours = hours ? hours : 12; 
+            return `${String(hours).padStart(2, '0')}:${minutes} ${ampm}`; 
+        };
+        
+        const getWeekNumber = (d) => { 
+            d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())); 
+            d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay()||7)); 
+            const yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1)); 
+            return Math.ceil((((d - yearStart) / 86400000) + 1)/7); 
+        };
+        
+        const formatCountdownDisplay = (totalSecs) => { 
+            if (totalSecs === null || totalSecs === undefined) return "00:00:00"; 
+            const hrs = String(Math.floor(totalSecs / 3600)).padStart(2, '0'); 
+            const mins = String(Math.floor((totalSecs % 3600) / 60)).padStart(2, '0'); 
+            const secs = String(totalSecs % 60).padStart(2, '0'); 
+            return `${hrs}:${mins}:${secs}`; 
+        };
+
+        const generateBlankCafeForm = () => ({ 
+            recordType: "cafe", 
+            date: getTodayDateInput(), 
+            name: "", 
+            phNum: "", 
+            bookings: [], 
+            currentModule: "", 
+            currentNop: "1", 
+            currentHours: "1", 
+            inTime: "", 
+            outTime: "", 
+            status: "Pending", 
+            orders: [], 
+            paymentCash: "", 
+            paymentUpi: "", 
+            timers: [] 
+        });
+        
+        const generateBlankRetailForm = () => ({ 
+            recordType: "retail", 
+            date: getTodayDateInput(), 
+            name: "", 
+            phNum: "", 
+            saleItem: "", 
+            salePrice: 0, 
+            saleType: "full", 
+            saleDownpayment: 0, 
+            emiDuration: 1, 
+            emiDurationType: "months", 
+            paymentCash: "", 
+            paymentUpi: "", 
+            status: "Completed",
+            inTime: getCurrentTimeStr()
+        });
+
+        // Safe Extractors
+        const getSafeArray = (arr, defaultArr) => (Array.isArray(arr) ? arr : defaultArr);
+        const getSafeObject = (obj, defaultObj) => (obj && typeof obj === 'object' && !Array.isArray(obj) ? obj : defaultObj);
+
+        // ==========================================
+        // LOGIN COMPONENT
+        // ==========================================
+        const LoginScreen = ({ onLogin }) => {
+            const [user, setUser] = useState(""); 
+            const [pass, setPass] = useState(""); 
+            const [error, setError] = useState(false);
+            
+            const handleAuth = (e) => {
+                e.preventDefault(); 
+                let savedCreds = { username: 'vino', password: 'vone' };
+                try { 
+                    const localCreds = localStorage.getItem('v1_cafe_credentials'); 
+                    if(localCreds) savedCreds = JSON.parse(localCreds) || savedCreds; 
+                } catch(err){}
+                
+                if (user === savedCreds.username && pass === savedCreds.password) { 
+                    onLogin(); 
+                } else { 
+                    setError(true); 
+                    setTimeout(() => setError(false), 3000); 
+                }
+            };
+            
+            return (
+                <div className="min-h-screen flex flex-col items-center justify-center p-4 relative">
+                    <div className="liquid-glow top-10 left-10 w-64 h-64 md:w-[300px] md:h-[300px]"></div>
+                    <div className="liquid-glow bottom-10 right-10 w-64 h-64 md:w-[300px] md:h-[300px]" style={{ animationDelay: '-6s' }}></div>
+                    <form onSubmit={handleAuth} className="glass-panel p-6 md:p-8 rounded-2xl w-full max-w-md border border-white/10 shadow-2xl relative z-10">
+                        <div className="text-center mb-8">
+                            <h1 className="text-2xl md:text-3xl font-extrabold tracking-wider font-sans text-white mb-2">
+                                V<span className="text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.6)]">1</span> GAMING <span className="text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.6)]">CAFE</span>
+                            </h1>
+                            <p className="text-gray-400 text-sm">Secure Management Portal</p>
+                        </div>
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-xs text-gray-400 font-semibold uppercase mb-1">Username</label>
+                                <input type="text" value={user} onChange={e => setUser(e.target.value)} className="w-full bg-black/50 border border-white/10 rounded-xl p-3 text-white outline-none focus:border-red-500 transition" required />
+                            </div>
+                            <div>
+                                <label className="block text-xs text-gray-400 font-semibold uppercase mb-1">Password</label>
+                                <input type="password" value={pass} onChange={e => setPass(e.target.value)} className="w-full bg-black/50 border border-white/10 rounded-xl p-3 text-white outline-none focus:border-red-500 transition" required />
+                            </div>
+                            {error && <div className="text-red-400 text-sm text-center bg-red-900/20 py-2 rounded border border-red-500/20">Invalid Credentials</div>}
+                            <button type="submit" className="w-full bg-gradient-to-r from-red-600 to-red-800 hover:from-red-500 hover:to-red-700 text-white font-bold py-3 rounded-xl shadow-lg transition transform hover:-translate-y-0.5 mt-4">
+                                Access Dashboard <i className="fa-solid fa-arrow-right-to-bracket ml-2"></i>
+                            </button>
+                        </div>
+                    </form>
+                    <button type="button" onClick={()=>{localStorage.clear(); window.location.reload();}} className="text-[10px] text-gray-500 hover:text-red-500 mt-6 relative z-10 transition border border-gray-800 px-3 py-1 rounded-full">
+                        Fix Login / Reset App
+                    </button>
+                </div>
+            );
+        };
+
+        // ==========================================
+        // TIMER COMPONENTS
+        // ==========================================
+        const SingleTimerCell = ({ t, rowId, onControl, onUpdateInput, onRemoveTimer, showRemove }) => {
+            const [localRem, setLocalRem] = useState(t.remaining);
+            
+            useEffect(() => {
+                let interval;
+                if (t.isActive && t.targetMs) {
+                    const updateTimer = () => {
+                        const rem = Math.max(0, Math.round((t.targetMs - Date.now()) / 1000));
+                        setLocalRem(rem);
+                        if (rem <= 0) { 
+                            clearInterval(interval); 
+                            playAlertBeep(); 
+                            onControl(rowId, 'complete', t.id); 
+                        }
+                    };
+                    updateTimer(); 
+                    interval = setInterval(updateTimer, 1000);
+                } else { 
+                    setLocalRem(t.remaining); 
+                }
+                return () => { if (interval) clearInterval(interval); };
+            }, [t.isActive, t.targetMs, t.remaining, rowId, t.id, onControl]);
+
+            return (
+                <div className="bg-black/40 border border-white/5 p-1.5 rounded-lg relative flex flex-col items-center gap-1 shadow-inner">
+                    {showRemove && (
+                        <button onClick={() => onRemoveTimer(rowId, t.id)} className="absolute -top-1 -right-1 bg-red-900/80 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px] shadow-lg border border-red-500/50 hover:bg-red-600">
+                            <i className="fa-solid fa-xmark"></i>
+                        </button>
+                    )}
+                    
+                    {t.remaining === null || t.remaining === undefined ? (
+                        <div className="flex items-center gap-1 justify-center w-full">
+                            <input type="number" placeholder="H" min="0" value={t.hours === 0 ? 0 : (t.hours || "")} onChange={(e) => onUpdateInput(rowId, t.id, "hours", parseInt(e.target.value) || 0)} className="w-9 bg-zinc-900 border border-white/10 rounded p-1 text-center text-xs outline-none focus:border-red-500" />
+                            <span className="text-white/40 font-bold">:</span>
+                            <input type="number" placeholder="M" min="0" max="59" value={t.mins === 0 ? 0 : (t.mins || "")} onChange={(e) => onUpdateInput(rowId, t.id, "mins", parseInt(e.target.value) || 0)} className="w-9 bg-zinc-900 border border-white/10 rounded p-1 text-center text-xs outline-none focus:border-red-500" />
+                            <button onClick={() => onControl(rowId, 'start', t.id)} className="bg-emerald-600/80 text-white text-[10px] px-2 py-1 rounded hover:bg-emerald-600 transition ml-1">Set</button>
+                        </div>
+                    ) : (
+                        <div className="flex flex-col items-center w-full gap-1">
+                            <div className={`text-xs font-bold font-mono tracking-widest px-2 py-0.5 rounded border w-full text-center ${localRem === 0 ? 'bg-red-900/40 text-red-400 border-red-500 animate-pulse' : 'bg-zinc-950 text-gray-300 border-white/10'}`}>
+                                {formatCountdownDisplay(localRem)}
+                            </div>
+                            <div className="flex gap-1 justify-center w-full">
+                                {t.isActive ? (
+                                    <button onClick={() => onControl(rowId, 'pause', t.id)} className="text-[9px] bg-amber-600/40 border border-amber-500/30 text-amber-300 px-1.5 py-1 rounded hover:bg-amber-600/60 transition flex-1">Pause</button>
+                                ) : (
+                                    localRem > 0 && <button onClick={() => onControl(rowId, 'start', t.id)} className="text-[9px] bg-emerald-600/40 border border-emerald-500/30 text-emerald-300 px-1.5 py-1 rounded hover:bg-emerald-600/60 transition flex-1">Play</button>
+                                )}
+                                <button onClick={() => onControl(rowId, 'reset', t.id)} className="text-[9px] bg-zinc-800 border border-white/10 text-gray-300 px-1.5 py-1 rounded hover:bg-zinc-700 transition flex-1">Rst</button>
+                                {(t.isActive || localRem > 0) && (
+                                    <button onClick={() => onControl(rowId, 'add10m', t.id)} className="text-[9px] font-bold bg-sky-900/40 border border-sky-500/30 text-sky-400 px-1.5 py-1 rounded hover:bg-sky-600/60 transition" title="Add 10 Mins">+10m</button>
+                                )}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const MultiTimerWrapper = ({ row, onControl, onUpdateInput, onAddTimer, onRemoveTimer }) => {
+            const timersList = Array.isArray(row.timers) && row.timers.length > 0 ? row.timers : [{ id: 'legacy', hours: row.timerHours||0, mins: row.timerMins||0, remaining: row.timerRemaining, targetMs: row.timerTargetMs, isActive: row.timerIsActive }];
+            
+            return (
+                <div className="flex flex-col gap-2 w-full min-w-[140px]">
+                    {timersList.map(t => (
+                        <SingleTimerCell key={t.id} t={t} rowId={row.id} onControl={onControl} onUpdateInput={onUpdateInput} onRemoveTimer={onRemoveTimer} showRemove={timersList.length > 1} />
+                    ))}
+                    <button onClick={() => onAddTimer(row.id)} className="text-[10px] text-emerald-400/80 border border-emerald-500/20 rounded py-1 w-full hover:bg-emerald-900/20 transition uppercase font-bold tracking-wider">+ Add Timer</button>
+                </div>
+            );
+        };
+
+        // ==========================================
+        // MAIN APP DASHBOARD COMPONENT
+        // ==========================================
+        const Dashboard = () => {
+            const [sessions, setSessions] = useState(() => {
+                try { const saved = localStorage.getItem('v1_cafe_sessions'); if(saved && saved !== "undefined") return JSON.parse(saved); } catch(e){}
+                return [];
+            });
+            const [sysSettings, setSysSettings] = useState(() => {
+                try { const saved = localStorage.getItem('v1_cafe_settings'); if(saved && saved !== "undefined") return JSON.parse(saved); } catch(e){}
+                return DEFAULT_SETTINGS;
+            });
+            
+            const [activeTab, setActiveTab] = useState('dashboard');
+            const [cloudStatus, setCloudStatus] = useState("connecting");
+            const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+            const [cloudErrorMsg, setCloudErrorMsg] = useState("");
+            
+            // App State
+            const [cafeFormData, setCafeFormData] = useState(generateBlankCafeForm());
+            const [retailFormData, setRetailFormData] = useState(generateBlankRetailForm());
+            const [editingId, setEditingId] = useState(null);
+            const [editingType, setEditingType] = useState('cafe'); 
+            
+            // Settings State
+            const [newFoodName, setNewFoodName] = useState(""); const [newFoodPrice, setNewFoodPrice] = useState("");
+            const [newJuiceName, setNewJuiceName] = useState(""); const [newJuicePrice, setNewJuicePrice] = useState("");
+            const [newSaleName, setNewSaleName] = useState(""); const [newSalePrice, setNewSalePrice] = useState("");
+            const [newModName, setNewModName] = useState(""); const [newModType, setNewModType] = useState("pax");
+            const [newModRate1, setNewModRate1] = useState(""); const [newModRate2, setNewModRate2] = useState("");
+            const [settingsMsg, setSettingsMsg] = useState("");
+            const [newUsername, setNewUsername] = useState(""); const [newPassword, setNewPassword] = useState("");
+
+            // INVOICE PRINT STATE
+            const [printBillData, setPrintBillData] = useState(null);
+
+            const [customStart, setCustomStart] = useState(getTodayDateInput());
+            const [customEnd, setCustomEnd] = useState(getTodayDateInput());
+            const [historySort, setHistorySort] = useState('timestamp_desc');
+            const [historyLimit, setHistoryLimit] = useState(50);
+            
+            const todayStrInput = getTodayDateInput();
+
+            // Safe Extractors
+            const safeModules = getSafeArray(sysSettings.modules, DEFAULT_SETTINGS.modules);
+            const safeFood = getSafeObject(sysSettings.food, DEFAULT_SETTINGS.food);
+            const safeJuice = getSafeObject(sysSettings.juice, DEFAULT_SETTINGS.juice);
+            const safeSales = getSafeObject(sysSettings.sales, DEFAULT_SETTINGS.sales);
+
+            // ==========================================
+            // DATA FETCHING & SYNC (Preserves History)
+            // ==========================================
+            const loadLocalFallback = () => {
+                try { 
+                    const savedSessions = localStorage.getItem('v1_cafe_sessions'); 
+                    if (savedSessions && savedSessions !== "undefined") { 
+                        const parsed = JSON.parse(savedSessions); 
+                        if(Array.isArray(parsed)) setSessions(parsed); 
+                    } 
+                } catch(e) {}
+                
+                try { 
+                    const sysLocal = localStorage.getItem('v1_cafe_settings'); 
+                    if (sysLocal && sysLocal !== "undefined") { 
+                        const parsed = JSON.parse(sysLocal); 
+                        if (parsed && typeof parsed === 'object') { 
+                            setSysSettings({
+                                food: getSafeObject(parsed.food, DEFAULT_SETTINGS.food),
+                                juice: getSafeObject(parsed.juice, DEFAULT_SETTINGS.juice),
+                                sales: getSafeObject(parsed.sales, DEFAULT_SETTINGS.sales),
+                                modules: getSafeArray(parsed.modules, DEFAULT_SETTINGS.modules)
+                            }); 
+                        } 
+                    } 
+                } catch(e) {}
+            };
+
+            const fetchInitialCloudData = async () => {
+                if (!supabaseClient) { loadLocalFallback(); return; }
+                try {
+                    const { data, error } = await supabaseClient.from('sessions').select('*');
+                    if (error) {
+                        setCloudErrorMsg("Fetch Error: " + error.message);
+                        throw error;
+                    }
+                    
+                    if (data && Array.isArray(data)) {
+                        // Settings logic
+                        const sys = data.find(r => r.id === 'SYSTEM_SETTINGS');
+                        if (sys && sys.data && typeof sys.data === 'object') {
+                            const newSettings = {
+                                food: getSafeObject(sys.data.food, DEFAULT_SETTINGS.food),
+                                juice: getSafeObject(sys.data.juice, DEFAULT_SETTINGS.juice),
+                                sales: getSafeObject(sys.data.sales, DEFAULT_SETTINGS.sales),
+                                modules: getSafeArray(sys.data.modules, DEFAULT_SETTINGS.modules)
+                            };
+                            setSysSettings(newSettings);
+                            localStorage.setItem('v1_cafe_settings', JSON.stringify(newSettings));
+                        }
+                        
+                        // Map every single independent row perfectly to preserve history
+                        const formattedData = data.filter(r => r.id !== 'SYSTEM_SETTINGS' && r.id !== 'V1_MASTER_DB').map(row => {
+                            const d = row.data || {};
+                            return {
+                                id: row.id,
+                                recordType: d.recordType || (d.saleItem ? "retail" : "cafe"),
+                                date: d.date || "", name: d.name || "", phNum: d.phNum || "",
+                                bookings: Array.isArray(d.bookings) ? d.bookings : [],
+                                orders: Array.isArray(d.orders) ? d.orders : [],
+                                saleItem: d.saleItem || "", salePrice: parseFloat(d.salePrice) || 0,
+                                saleType: d.saleType || "full", saleDownpayment: parseFloat(d.saleDownpayment) || 0,
+                                emiDuration: parseInt(d.emiDuration) || 1, emiDurationType: d.emiDurationType || "months",
+                                paymentCash: d.paymentCash || "", paymentUpi: d.paymentUpi || "",
+                                timers: Array.isArray(d.timers) ? d.timers : [], status: d.status || "Pending",
+                                inTime: d.inTime || "", outTime: d.outTime || "", timestamp: d.timestamp || 0,
+                                amount: parseFloat(d.amount) || 0, foodJuiceAmount: parseFloat(d.foodJuiceAmount) || 0,
+                                salesAmount: parseFloat(d.salesAmount) || 0, grandTotal: parseFloat(d.grandTotal) || 0
+                            };
+                        });
+                        
+                        // Sort by newest so it looks perfect
+                        formattedData.sort((a,b) => b.timestamp - a.timestamp);
+                        setSessions(formattedData);
+                        localStorage.setItem('v1_cafe_sessions', JSON.stringify(formattedData));
+                        setCloudStatus("online");
+                        setCloudErrorMsg(""); 
+                    }
+                } catch (err) { 
+                    setCloudStatus("offline"); 
+                    loadLocalFallback(); 
+                }
+            };
+
+            const fetchSessionsOnly = async () => {
+                if (!supabaseClient) return;
+                try {
+                    const { data, error } = await supabaseClient.from('sessions').select('*').neq('id', 'SYSTEM_SETTINGS').neq('id', 'V1_MASTER_DB');
+                    if (error) {
+                        setCloudErrorMsg("Sync Fetch Error: " + error.message);
+                        throw error;
+                    }
+                    if (data && Array.isArray(data)) {
+                        const formattedData = data.map(row => {
+                            const d = row.data || {};
+                            return {
+                                id: row.id, recordType: d.recordType || (d.saleItem ? "retail" : "cafe"),
+                                date: d.date || "", name: d.name || "", phNum: d.phNum || "",
+                                bookings: Array.isArray(d.bookings) ? d.bookings : [], orders: Array.isArray(d.orders) ? d.orders : [],
+                                saleItem: d.saleItem || "", salePrice: parseFloat(d.salePrice) || 0,
+                                saleType: d.saleType || "full", saleDownpayment: parseFloat(d.saleDownpayment) || 0,
+                                emiDuration: parseInt(d.emiDuration) || 1, emiDurationType: d.emiDurationType || "months",
+                                paymentCash: d.paymentCash || "", paymentUpi: d.paymentUpi || "",
+                                timers: Array.isArray(d.timers) ? d.timers : [], status: d.status || "Pending",
+                                inTime: d.inTime || "", outTime: d.outTime || "", timestamp: d.timestamp || 0,
+                                amount: parseFloat(d.amount) || 0, foodJuiceAmount: parseFloat(d.foodJuiceAmount) || 0,
+                                salesAmount: parseFloat(d.salesAmount) || 0, grandTotal: parseFloat(d.grandTotal) || 0
+                            };
+                        });
+                        formattedData.sort((a,b) => b.timestamp - a.timestamp);
+                        setSessions(formattedData);
+                        localStorage.setItem('v1_cafe_sessions', JSON.stringify(formattedData));
+                    }
+                } catch (err) {}
+            };
+
+            useEffect(() => {
+                fetchInitialCloudData();
+                if (supabaseClient) {
+                    const channel = supabaseClient.channel('schema-db-changes').on('postgres_changes', { event: '*', schema: 'public', table: 'sessions' }, (payload) => {
+                        // Sync correctly for new, update, and delete events
+                        if (payload.eventType === 'DELETE' || (payload.new && payload.new.id !== 'SYSTEM_SETTINGS' && payload.new.id !== 'V1_MASTER_DB')) { 
+                            fetchSessionsOnly(); 
+                        }
+                    }).subscribe();
+                    return () => { supabaseClient.removeChannel(channel); };
+                }
+            }, []);
+
+            useEffect(() => {
+                try { localStorage.setItem('v1_cafe_sessions', JSON.stringify(sessions)); localStorage.setItem('v1_cafe_settings', JSON.stringify(sysSettings)); } catch(e) {}
+            }, [sessions, sysSettings]);
+
+            // ==========================================
+            // SETTINGS ENGINE (THE SLEDGEHAMMER DELETE+INSERT HACK)
+            // ==========================================
+            const pushSettingsToCloud = async (updatedObj) => {
+                setSysSettings(updatedObj);
+                localStorage.setItem('v1_cafe_settings', JSON.stringify(updatedObj));
+                
+                if (!supabaseClient) return;
+                
+                try { 
+                    // SLEDGEHAMMER HACK: First, forcefully completely obliterate the old row from the database.
+                    await supabaseClient.from('sessions').delete().eq('id', 'SYSTEM_SETTINGS');
+                    
+                    // Then seamlessly insert the fresh new one. This fundamentally bypasses all Unique Constraint & Duplicate Key errors!
+                    const { error } = await supabaseClient.from('sessions').insert([{ id: 'SYSTEM_SETTINGS', data: updatedObj }]);
+                    
+                    if (error) {
+                        setCloudErrorMsg("Cloud Save Error: " + error.message);
+                    } else {
+                        setCloudErrorMsg(""); // Success
+                    }
+                } catch(e) { console.error(e); }
+            };
+
+            const appendCatalogItem = (e, category, name, rate) => {
+                e.preventDefault(); if(!name.trim() || !rate) return;
+                const updatedCategory = { ...getSafeObject(sysSettings[category], DEFAULT_SETTINGS[category]), [name.trim()]: parseInt(rate)||0 };
+                pushSettingsToCloud({ ...sysSettings, [category]: updatedCategory });
+                if(category === 'food') { setNewFoodName(""); setNewFoodPrice(""); }
+                if(category === 'juice') { setNewJuiceName(""); setNewJuicePrice(""); }
+                if(category === 'sales') { setNewSaleName(""); setNewSalePrice(""); }
+            };
+
+            const purgeCatalogItem = (category, key) => {
+                const updatedCategory = { ...getSafeObject(sysSettings[category], DEFAULT_SETTINGS[category]) };
+                delete updatedCategory[key];
+                pushSettingsToCloud({ ...sysSettings, [category]: updatedCategory });
+            };
+
+            const editCatalogItem = (category, key, price) => {
+                if(category === 'food') { setNewFoodName(key); setNewFoodPrice(price); }
+                if(category === 'juice') { setNewJuiceName(key); setNewJuicePrice(price); }
+                if(category === 'sales') { setNewSaleName(key); setNewSalePrice(price); }
+                purgeCatalogItem(category, key);
+            };
+
+            const appendPlayModule = (e) => {
+                e.preventDefault(); if(!newModName.trim() || !newModRate1) return;
+                const currentModules = getSafeArray(sysSettings.modules, DEFAULT_SETTINGS.modules);
+                const updatedModules = [...currentModules, { name: newModName.trim().toUpperCase(), type: newModType, singleRate: parseInt(newModRate1)||0, multiRate: parseInt(newModRate2 || newModRate1)||0 }];
+                pushSettingsToCloud({ ...sysSettings, modules: updatedModules });
+                setNewModName(""); setNewModRate1(""); setNewModRate2("");
+            };
+
+            const purgePlayModule = (index) => {
+                const currentModules = getSafeArray(sysSettings.modules, DEFAULT_SETTINGS.modules);
+                const updatedModules = currentModules.filter((_, i) => i !== index);
+                pushSettingsToCloud({ ...sysSettings, modules: updatedModules });
+            };
+
+            const changeCredentials = (e) => {
+                e.preventDefault();
+                if(newUsername && newPassword) {
+                    localStorage.setItem('v1_cafe_credentials', JSON.stringify({ username: newUsername, password: newPassword }));
+                    setSettingsMsg("Credentials saved successfully!");
+                    setTimeout(() => { setSettingsMsg(""); setNewUsername(""); setNewPassword(""); }, 2000);
+                }
+            };
+
+            // ==========================================
+            // PDF DOWNLOAD LOGIC
+            // ==========================================
+            const handleDownloadPDF = () => {
+                const element = document.getElementById('printable-bill');
+                const opt = {
+                    margin:       0.3,
+                    filename:     `V1_Invoice_${printBillData.name || 'Walkin'}_${printBillData.id.slice(-5)}.pdf`,
+                    image:        { type: 'jpeg', quality: 0.98 },
+                    html2canvas:  { scale: 2, useCORS: true, logging: false },
+                    jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
+                };
+                html2pdf().set(opt).from(element).save().then(() => {
+                    setPrintBillData(null);
+                });
+            };
+
+            // ==========================================
+            // CAFE BILLING LOGIC & LIVE TOTAL
+            // ==========================================
+            const calcModuleCost = (bType, nVal, hVal, extraM = 0) => {
+                const totalH = hVal + (extraM / 60); 
+                const mod = safeModules.find(m => m.name === bType); 
+                if(!mod) return 0;
+                if(mod.type === 'flat') return mod.singleRate * totalH;
+                if(mod.type === 'pax') return nVal === 1 ? (mod.singleRate * totalH) : (nVal * mod.multiRate * totalH);
+                if(mod.type === 'party') return totalH <= 1 ? (mod.singleRate * totalH) : (mod.singleRate + (totalH - 1)*mod.multiRate); 
+                return 0;
+            };
+
+            const getLiveModulePreview = () => {
+                if (!cafeFormData.currentModule) return 0;
+                const hVal = cafeFormData.currentHours === "1/2" ? 0.5 : parseFloat(cafeFormData.currentHours) || 0;
+                const nVal = parseInt(cafeFormData.currentNop) || 1;
+                return Math.round(calcModuleCost(cafeFormData.currentModule, nVal, hVal, 0));
+            };
+            const currentBookingPreviewTotal = getLiveModulePreview();
+
+            const calculateCafeTotals = (data) => {
+                let bookingAmt = 0;
+                const safeFormBookings = Array.isArray(data.bookings) ? data.bookings : [];
+                const safeFormOrders = Array.isArray(data.orders) ? data.orders : [];
+
+                safeFormBookings.forEach(b => { 
+                    const hVal = b.hours === "1/2" ? 0.5 : parseFloat(b.hours) || 0; 
+                    const nVal = parseInt(b.nop) || 1; 
+                    bookingAmt += calcModuleCost(b.module, nVal, hVal, b.extraMins || 0); 
+                });
+                
+                const foodJuiceAmount = safeFormOrders.reduce((sum, order) => sum + ((order.price||0) * (order.qty||0)), 0);
+                return { bookingAmt: Math.round(bookingAmt), foodJuiceAmount: Math.round(foodJuiceAmount), grandTotal: Math.round(bookingAmt + foodJuiceAmount) };
+            };
+            const cafeTotals = calculateCafeTotals(cafeFormData);
+
+            const updateCafeForm = (key, val) => { setCafeFormData(prev => ({ ...prev, [key]: val })); };
+
+            const handleCafePaymentChange = (type, val) => {
+                const numVal = parseFloat(val);
+                if (isNaN(numVal) || val === '') { setCafeFormData(prev => ({ ...prev, [type]: val })); return; }
+                const currentTotal = cafeTotals.grandTotal;
+                if (type === 'paymentCash') { setCafeFormData(prev => ({ ...prev, paymentCash: val, paymentUpi: Math.max(0, currentTotal - numVal) })); } 
+                else { setCafeFormData(prev => ({ ...prev, paymentUpi: val, paymentCash: Math.max(0, currentTotal - numVal) })); }
+            };
+
+            const addCafeBooking = (e) => {
+                e.preventDefault(); if (!cafeFormData.currentModule) return;
+                setCafeFormData(prev => ({ 
+                    ...prev, 
+                    bookings: [...(Array.isArray(prev.bookings)?prev.bookings:[]), { module: prev.currentModule, nop: prev.currentNop, hours: prev.currentHours, extraMins: 0 }], 
+                    currentModule: "", currentNop: "1", currentHours: "1" 
+                }));
+            };
+            const removeCafeBooking = (index) => { setCafeFormData(prev => ({ ...prev, bookings: prev.bookings.filter((_, i) => i !== index) })); };
+            const addExtraMinsToCafe = (index, mins) => { setCafeFormData(prev => { const newB = [...(Array.isArray(prev.bookings)?prev.bookings:[])]; if(newB[index]) newB[index].extraMins = (newB[index].extraMins || 0) + mins; return { ...prev, bookings: newB }; }); };
+            
+            const addCafeOrder = (item, type, priceMap) => {
+                if (!item) return; const price = priceMap[item] || 0;
+                setCafeFormData(prev => { const currentOrders = Array.isArray(prev.orders) ? prev.orders : []; const existing = currentOrders.find(o => o.item === item); if (existing) return { ...prev, orders: currentOrders.map(o => o.item === item ? { ...o, qty: o.qty + 1 } : o) }; return { ...prev, orders: [...currentOrders, { item, type, price, qty: 1 }] }; });
+            };
+            const updateCafeOrderQty = (item, delta) => { setCafeFormData(prev => { const newOrders = prev.orders.map(o => { if (o.item === item) { const newQty = o.qty + delta; return { ...o, qty: newQty > 0 ? newQty : 1 }; } return o; }); return { ...prev, orders: newOrders }; }); };
+            const removeCafeOrder = (itemToRemove) => { setCafeFormData(prev => ({ ...prev, orders: prev.orders.filter(o => o.item !== itemToRemove) })); };
+
+            // ==========================================
+            // RETAIL STORE LOGIC
+            // ==========================================
+            const calculateRetailTotals = (data) => {
+                const salesCollected = data.saleItem ? (data.saleType === 'full' ? (parseFloat(data.salePrice)||0) : (parseFloat(data.saleDownpayment)||0)) : 0;
+                return { salesAmount: Math.round(salesCollected), grandTotal: Math.round(salesCollected) };
+            };
+            const retailTotals = calculateRetailTotals(retailFormData);
+
+            const updateRetailForm = (key, val) => { setRetailFormData(prev => ({ ...prev, [key]: val })); };
+            const handleRetailSelect = (item) => { const price = safeSales[item] || 0; setRetailFormData(prev => ({ ...prev, saleItem: item, salePrice: price, saleType: 'full', saleDownpayment: 0, paymentCash: price, paymentUpi: 0 })); };
+
+            const handleRetailPaymentChange = (type, val) => {
+                const numVal = parseFloat(val);
+                if (isNaN(numVal) || val === '') { setRetailFormData(prev => ({ ...prev, [type]: val })); return; }
+                const currentTotal = retailTotals.grandTotal;
+                if (type === 'paymentCash') { setRetailFormData(prev => ({ ...prev, paymentCash: val, paymentUpi: Math.max(0, currentTotal - numVal) })); } 
+                else { setRetailFormData(prev => ({ ...prev, paymentUpi: val, paymentCash: Math.max(0, currentTotal - numVal) })); }
+            };
+
+            const handleRetailEmiToggle = (type) => {
+                const price = retailFormData.salePrice || 0;
+                if(type === 'emi') { setRetailFormData(prev => ({ ...prev, saleType: 'emi', saleDownpayment: Math.round(price/3), paymentCash: Math.round(price/3), paymentUpi: 0 })); } 
+                else { setRetailFormData(prev => ({ ...prev, saleType: 'full', saleDownpayment: 0, paymentCash: price, paymentUpi: 0 })); }
+            };
+
+            // ==========================================
+            // DB SAVE AND EDIT (Strict Insert/Update No Duplicate Constraint Bugs)
+            // ==========================================
+            const saveSession = async (typeToSave) => {
+                let completeData = {};
+                if (typeToSave === 'cafe') {
+                    const finalInTime = (cafeFormData.inTime||"").trim() === "" ? getCurrentTimeStr() : cafeFormData.inTime;
+                    completeData = { 
+                        ...cafeFormData, date: normalizeDate(cafeFormData.date), inTime: finalInTime, 
+                        amount: cafeTotals.bookingAmt, foodJuiceAmount: cafeTotals.foodJuiceAmount, grandTotal: cafeTotals.grandTotal, 
+                        timestamp: editingId ? cafeFormData.timestamp : new Date().getTime() 
+                    };
+                    delete completeData.currentModule; delete completeData.currentNop; delete completeData.currentHours;
+                    if (!editingId) { completeData.timers = [{ id: Date.now().toString(), hours: "1", mins: "0", remaining: null, targetMs: null, isActive: false }]; completeData.status = "Pending"; }
+                } else {
+                    completeData = { 
+                        ...retailFormData, date: normalizeDate(retailFormData.date), 
+                        inTime: retailFormData.inTime || getCurrentTimeStr(), outTime: retailFormData.inTime || getCurrentTimeStr(), 
+                        salesAmount: retailTotals.salesAmount, grandTotal: retailTotals.grandTotal, 
+                        timestamp: editingId ? retailFormData.timestamp : new Date().getTime(), status: "Completed" 
+                    };
+                }
+
+                // Generates a 100% Unique ID combining Date and random string to eliminate duplicate keys.
+                const uniqueIdString = "V1-" + Date.now().toString(36) + "-" + Math.floor(Math.random() * 10000).toString();
+                const sessionId = editingId || uniqueIdString;
+                
+                // 1. Optimistic Local Sync 
+                setSessions(prev => {
+                    const updated = editingId ? prev.map(s => s.id === editingId ? { ...s, ...completeData } : s) : [{ ...completeData, id: sessionId }, ...prev];
+                    localStorage.setItem('v1_cafe_sessions', JSON.stringify(updated));
+                    return updated;
+                });
+
+                // 2. Clear Forms immediately
+                setEditingId(null); 
+                if(typeToSave === 'cafe') setCafeFormData(generateBlankCafeForm()); else setRetailFormData(generateBlankRetailForm());
+
+                // 3. SLEDGEHAMMER HACK FOR BILLS
+                try { 
+                    if (supabaseClient) { 
+                        if (editingId) {
+                            await supabaseClient.from('sessions').delete().eq('id', String(sessionId)); 
+                        }
+                        const {error} = await supabaseClient.from('sessions').insert([{ id: String(sessionId), data: completeData }]); 
+                        if(error) {
+                            setCloudErrorMsg("Save Error: " + error.message);
+                        } else {
+                            setCloudErrorMsg("");
+                        }
+                    } 
+                } catch (error) { console.error(error); }
+            };
+
+            const deleteSession = async (id) => {
+                if (window.confirm("Thalaiva, delete pannidalaama?")) {
+                    setSessions(prev => {
+                        const updated = prev.filter(s => s.id !== id);
+                        localStorage.setItem('v1_cafe_sessions', JSON.stringify(updated));
+                        return updated;
+                    });
+                    
+                    try { 
+                        if (supabaseClient) {
+                            const {error} = await supabaseClient.from('sessions').delete().eq('id', String(id)); 
+                            if(error) setCloudErrorMsg("Delete Error: " + error.message);
+                        }
+                    } catch (error) {}
+                }
+            };
+
+            const handleEditEntry = (row) => {
+                setEditingId(row.id);
+                let editableRow = { ...row };
+                const isRetail = editableRow.recordType === 'retail' || editableRow.saleItem;
+
+                if (isRetail) {
+                    editableRow.recordType = 'retail';
+                    setActiveTab('sales_dashboard'); setEditingType('retail');
+                    setRetailFormData({ ...generateBlankRetailForm(), ...editableRow });
+                } else {
+                    editableRow.recordType = 'cafe';
+                    setActiveTab('dashboard'); setEditingType('cafe');
+                    if (!Array.isArray(editableRow.bookings)) { editableRow.bookings = []; if (editableRow.booking) editableRow.bookings.push({ module: editableRow.booking, nop: editableRow.nop || "1", hours: editableRow.hours || "1", extraMins: 0 }); }
+                    if(!Array.isArray(editableRow.timers)) { editableRow.timers = [{ id: 'legacy', hours: editableRow.timerHours||0, mins: editableRow.timerMins||0, remaining: editableRow.timerRemaining, targetMs: editableRow.timerTargetMs, isActive: editableRow.timerIsActive }]; }
+                    if(!Array.isArray(editableRow.orders)) editableRow.orders = [];
+                    editableRow.currentModule = ""; editableRow.currentNop = "1"; editableRow.currentHours = "1";
+                    setCafeFormData({ ...generateBlankCafeForm(), ...editableRow });
+                }
+                window.scrollTo({top: 0, behavior: 'smooth'});
+            };
+
+            const handleTabSwitch = (tabName) => { setActiveTab(tabName); setIsSidebarOpen(false); setHistoryLimit(50); };
+
+            // TIMERS
+            const updateTimerInRow = (id, timerUpdater) => {
+                setSessions(prev => {
+                    const row = prev.find(s => s.id === id); if(!row) return prev;
+                    const updatedSession = timerUpdater(row);
+                    const updatedArray = prev.map(s => s.id === id ? updatedSession : s);
+                    localStorage.setItem('v1_cafe_sessions', JSON.stringify(updatedArray));
+                    
+                    if (supabaseClient) {
+                        supabaseClient.from('sessions').update({ data: updatedSession }).eq('id', String(id)).then(()=>{});
+                    }
+                    return updatedArray;
+                });
+            };
+
+            const addTimerToRow = async (id) => { 
+                updateTimerInRow(id, (row) => {
+                    let currentTimers = Array.isArray(row.timers) && row.timers.length > 0 ? [...row.timers] : [{ id: 'legacy', hours: row.timerHours||0, mins: row.timerMins||0, remaining: row.timerRemaining, targetMs: row.timerTargetMs, isActive: row.timerIsActive }]; 
+                    return { ...row, timers: [...currentTimers, { id: Date.now().toString(), hours: 0, mins: 0, remaining: null, targetMs: null, isActive: false }] };
+                });
+            };
+
+            const removeTimerFromRow = async (id, timerId) => { 
+                updateTimerInRow(id, (row) => {
+                    return { ...row, timers: (Array.isArray(row.timers)?row.timers:[]).filter(t => t.id !== timerId) };
+                });
+            };
+
+            const controlTimer = async (id, action, timerId) => { 
+                updateTimerInRow(id, (row) => {
+                    let currentTimers = Array.isArray(row.timers) && row.timers.length > 0 ? [...row.timers] : [{ id: 'legacy', hours: row.timerHours||0, mins: row.timerMins||0, remaining: row.timerRemaining, targetMs: row.timerTargetMs, isActive: row.timerIsActive }]; 
+                    let tIndex = currentTimers.findIndex(x => x.id === timerId); if (tIndex === -1) return row; 
+                    let t = {...currentTimers[tIndex]}; 
+                    if (action === 'start') { let secs = t.remaining; if (secs === null || secs === undefined) secs = ((parseInt(t.hours)||0)*3600) + ((parseInt(t.mins)||0)*60); if (secs > 0) { t.targetMs = Date.now() + (secs * 1000); t.remaining = secs; t.isActive = true; } } 
+                    else if (action === 'pause') { t.remaining = Math.max(0, Math.round((t.targetMs - Date.now())/1000)); t.isActive = false; t.targetMs = null; } 
+                    else if (action === 'reset') { t.remaining = null; t.targetMs = null; t.isActive = false; t.hours = 0; t.mins = 0; } 
+                    else if (action === 'complete') { t.remaining = 0; t.targetMs = null; t.isActive = false; } 
+                    else if (action === 'add10m') { if (t.isActive && t.targetMs) { t.targetMs += 10 * 60 * 1000; t.remaining += 600; } else if (t.remaining !== null) { t.remaining += 600; } else { t.mins = (parseInt(t.mins)||0) + 10; } } 
+                    currentTimers[tIndex] = t; 
+                    let status = row.status; if(currentTimers.some(x => x.isActive)) status = 'Active'; else if (currentTimers.every(x => x.remaining === 0 && !x.isActive)) status = 'Completed'; 
+                    return { ...row, timers: currentTimers, status: status, outTime: status==='Completed' ? getCurrentTimeStr() : row.outTime }; 
+                });
+            };
+
+            const updateTimerInput = async (id, timerId, key, val) => { 
+                updateTimerInRow(id, (row) => {
+                    let currentTimers = [...(Array.isArray(row.timers)?row.timers:[])]; 
+                    let tIndex = currentTimers.findIndex(x => x.id === timerId); if (tIndex === -1) return row; 
+                    currentTimers[tIndex] = { ...currentTimers[tIndex], [key]: val }; 
+                    return { ...row, timers: currentTimers }; 
+                });
+            };
+
+            // REPORTS ENGINE
+            const todaySessions = (sessions||[]).filter(s => normalizeDate(s.date) === todayStrInput);
+            const todayCash = todaySessions.reduce((acc, r) => acc + (parseFloat(r.paymentCash) || 0), 0);
+            const todayUpi = todaySessions.reduce((acc, r) => acc + (parseFloat(r.paymentUpi) || 0), 0);
+            const todayTotal = todaySessions.reduce((acc, r) => acc + (r.grandTotal || 0), 0);
+
+            const sortedHistory = [...(sessions||[])].sort((a, b) => {
+                if (historySort === 'timestamp_desc') return (b.timestamp||0) - (a.timestamp||0); if (historySort === 'timestamp_asc') return (a.timestamp||0) - (b.timestamp||0);
+                if (historySort === 'date_desc') return new Date(normalizeDate(b.date)) - new Date(normalizeDate(a.date)); if (historySort === 'date_asc') return new Date(normalizeDate(a.date)) - new Date(normalizeDate(b.date)); return 0;
+            });
+
+            const generateReportData = (type) => {
+                const grouped = {};
+                (sessions||[]).forEach(s => {
+                    let key = ""; const normalized = normalizeDate(s.date); if(!normalized) return;
+                    if (type === 'daily') { key = normalized; } else if (type === 'monthly') { const parts = normalized.split('-'); key = parts.length === 3 ? `${parts[0]}-${parts[1]}` : normalized; } else if (type === 'weekly') { const d = new Date(normalized); if (!isNaN(d.getTime())) { key = `${d.getFullYear()}-W${String(getWeekNumber(d)).padStart(2, '0')}`; } else { key = "Unknown"; } }
+                    if (!grouped[key]) grouped[key] = { cash: 0, upi: 0, total: 0, count: 0 };
+                    grouped[key].cash += (parseFloat(s.paymentCash) || 0); grouped[key].upi += (parseFloat(s.paymentUpi) || 0); grouped[key].total += (s.grandTotal || 0); grouped[key].count += 1;
+                });
+                return Object.entries(grouped).sort().reverse(); 
+            };
+
+            const formatPeriodLabel = (period, type) => {
+                if(!period) return "Unknown"; if (type === 'daily') return formatDateForDisplay(period);
+                if (type === 'monthly' && period.includes('-')) { const parts = period.split('-'); return `${parts[1]}/${parts[0]}`; }
+                if (type === 'weekly' && period.includes('-W')) { const parts = period.split('-W'); return `Week ${parts[1]} - ${parts[0]}`; } return period;
+            };
+
+            const exportCustomStatement = () => {
+                const filtered = sessions.filter(s => { const sDate = normalizeDate(s.date); return sDate >= customStart && sDate <= customEnd; });
+                if(filtered.length === 0) { alert("Records not found!"); return; }
+
+                const payload = filtered.map((r, i) => {
+                    const isRet = r.recordType === 'retail' || r.saleItem;
+                    let moduleStr = "N/A"; let orderStr = "None"; let saleStr = "None";
+                    if (!isRet) {
+                        orderStr = Array.isArray(r.orders) ? r.orders.map(o => `${o.qty}x ${o.item}`).join(', ') : '';
+                        if (Array.isArray(r.bookings) && r.bookings.length > 0) { moduleStr = r.bookings.map(b => `${b.module} (${b.nop}P, ${b.hours}h)`).join(" + "); } else { moduleStr = r.booking ? `${r.booking} (${r.nop||1}P, ${r.hours||1}h)` : "N/A"; }
+                    } else { if (r.saleType === 'emi') { saleStr = `${r.saleItem} (EMI Bal: ${(r.salePrice || 0) - (r.saleDownpayment || 0)})`; } else { saleStr = r.saleItem; } }
+                    return { "S/NO": i + 1, "DATE": formatDateForDisplay(r.date), "TYPE": isRet ? "Store Sale" : "Cafe Session", "NAME": r.name, "PH-NUM": r.phNum, "CAFE MODULES": moduleStr, "FOOD/JUICES": orderStr || "None", "STORE SALE": saleStr, "IN-TIME": r.inTime, "OUT-TIME": r.outTime, "GRAND TOTAL (Rs)": r.grandTotal || 0, "PAID CASH (Rs)": r.paymentCash || 0, "PAID UPI (Rs)": r.paymentUpi || 0, "STATUS": r.status };
+                });
+                const tCash = filtered.reduce((acc, r) => acc + (parseFloat(r.paymentCash) || 0), 0); const tUpi = filtered.reduce((acc, r) => acc + (parseFloat(r.paymentUpi) || 0), 0); const tRev = filtered.reduce((acc, r) => acc + (r.grandTotal || 0), 0);
+                payload.push({}); payload.push({ "DATE": "TOTAL SUMMARY", "GRAND TOTAL (Rs)": tRev, "PAID CASH (Rs)": tCash, "PAID UPI (Rs)": tUpi });
+                const worksheet = XLSX.utils.json_to_sheet(payload); const workbook = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(workbook, worksheet, "Bank Statement"); XLSX.writeFile(workbook, `V1_Statement_${customStart}_to_${customEnd}.xlsx`);
+            };
+
+            const customFilteredSessions = (sessions||[]).filter(s => { const sDate = normalizeDate(s.date); return sDate >= customStart && sDate <= customEnd; });
+            const customCash = customFilteredSessions.reduce((acc, r) => acc + (parseFloat(r.paymentCash) || 0), 0);
+            const customUpi = customFilteredSessions.reduce((acc, r) => acc + (parseFloat(r.paymentUpi) || 0), 0);
+            const customTotal = customFilteredSessions.reduce((acc, r) => acc + (r.grandTotal || 0), 0);
+
+
+            // ==========================================
+            // MAIN RENDER
+            // ==========================================
+            return (
+                <div className="flex min-h-screen relative w-full">
+                    {/* BACKGROUND EFFECTS */}
+                    <div className="liquid-glow top-10 left-10 fixed w-[250px] h-[250px] md:w-[300px] md:h-[300px]"></div>
+                    <div className="liquid-glow bottom-10 right-10 fixed w-[250px] h-[250px] md:w-[300px] md:h-[300px]" style={{ animationDelay: '-6s' }}></div>
+                    {isSidebarOpen && <div className="fixed inset-0 z-40 glass-backdrop" onClick={() => setIsSidebarOpen(false)}></div>}
+
+                    {/* SIDEBAR */}
+                    <div className={`w-[280px] md:w-72 glass-panel border-r border-white/10 flex flex-col fixed top-0 left-0 h-full z-50 sidebar-slide ${isSidebarOpen ? 'translate-x-0 shadow-[20px_0_40px_rgba(0,0,0,0.5)]' : '-translate-x-full'} no-print`}>
+                        <div className="flex justify-between items-center p-6 border-b border-white/10">
+                            <h1 className="text-2xl font-extrabold tracking-wider font-sans text-white">V<span className="text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.6)]">1</span> GAMING</h1>
+                            <button onClick={() => setIsSidebarOpen(false)} className="text-gray-400 hover:text-red-500 p-2"><i className="fa-solid fa-xmark text-2xl"></i></button>
+                        </div>
+                        <nav className="flex-1 p-4 space-y-2 mt-2 overflow-y-auto">
+                            <button onClick={() => handleTabSwitch('dashboard')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'dashboard' ? 'bg-red-600/20 text-red-400 border border-red-500/30' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`}><i className="fa-solid fa-gamepad w-5 text-center"></i> Cafe Entry Form</button>
+                            <button onClick={() => handleTabSwitch('sales_dashboard')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'sales_dashboard' ? 'bg-emerald-600/20 text-emerald-400 border border-emerald-500/30' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`}><i className="fa-solid fa-store w-5 text-center"></i> Store Purchase Form</button>
+                            <button onClick={() => handleTabSwitch('settings_workspace')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'settings_workspace' ? 'bg-amber-600/20 text-amber-400 border border-amber-500/30' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`}><i className="fa-solid fa-gears w-5 text-center"></i> Master Settings</button>
+                            
+                            <div className="pt-4 pb-2 text-[10px] uppercase text-gray-500 font-bold tracking-widest pl-4">Analytics Reports</div>
+                            <button onClick={() => handleTabSwitch('daily')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'daily' ? 'bg-red-600/20 text-red-400 border border-red-500/30' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`}><i className="fa-solid fa-calendar-day w-5 text-center"></i> Daily Report</button>
+                            <button onClick={() => handleTabSwitch('weekly')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'weekly' ? 'bg-red-600/20 text-red-400 border border-red-500/30' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`}><i className="fa-solid fa-calendar-week w-5 text-center"></i> Weekly Report</button>
+                            <button onClick={() => handleTabSwitch('monthly')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'monthly' ? 'bg-red-600/20 text-red-400 border border-red-500/30' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`}><i className="fa-solid fa-calendar-days w-5 text-center"></i> Monthly Report</button>
+                            
+                            <div className="pt-4 pb-2 text-[10px] uppercase text-gray-500 font-bold tracking-widest pl-4">Database</div>
+                            <button onClick={() => handleTabSwitch('history')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'history' ? 'bg-amber-900/40 text-amber-400 border border-amber-500/30' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`}><i className="fa-solid fa-database w-5 text-center"></i> Cloud History Logs</button>
+                            
+                            <div className="pt-4 pb-2 text-[10px] uppercase text-gray-500 font-bold tracking-widest pl-4">Downloads</div>
+                            <button onClick={() => handleTabSwitch('statement')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'statement' ? 'bg-emerald-600/20 text-emerald-400 border border-emerald-500/30' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`}><i className="fa-solid fa-file-invoice-dollar w-5 text-center"></i> Bank Statement</button>
+                        </nav>
+                        <div className="p-4 border-t border-white/10 text-xs font-bold text-center">
+                            {cloudStatus === "online" ? <span className="text-emerald-400"> Cloud Sync Active</span> : <span className="text-amber-400"> Offline Backup Active</span>}
+                        </div>
+                    </div>
+
+                    {/* MAIN AREA */}
+                    <div className="flex-1 p-3 sm:p-4 lg:p-8 w-full max-w-full overflow-hidden transition-all duration-500 no-print">
+                        <header className="flex flex-col xl:flex-row justify-between items-center mb-6 gap-4 glass-panel p-4 rounded-2xl border border-white/10 relative z-10">
+                            <div className="flex items-center gap-4 w-full xl:w-auto">
+                                <button onClick={() => setIsSidebarOpen(true)} className="text-gray-300 hover:text-red-500 text-2xl p-2"><i className="fa-solid fa-bars"></i></button>
+                                <div>
+                                    <h2 className="text-lg sm:text-xl font-bold text-white capitalize">{activeTab.replace('_', ' ')}</h2>
+                                    <p className="text-xs text-gray-400">{formatDateForDisplay(todayStrInput)} - V1 Workspace</p>
+                                </div>
+                            </div>
+                            
+                            {/* CLOUD ERROR AGGRESSIVE ALERT UI */}
+                            {cloudErrorMsg && (
+                                <div className="bg-red-900/50 border border-red-500 text-red-200 px-4 py-2 rounded-xl text-xs font-mono animate-pulse">
+                                    <i className="fa-solid fa-triangle-exclamation mr-2"></i> {cloudErrorMsg}
+                                </div>
+                            )}
+
+                            {(activeTab === 'dashboard' || activeTab === 'sales_dashboard') && (
+                                <div className="flex gap-3 sm:gap-4 text-xs sm:text-sm font-semibold bg-zinc-950/60 border border-white/5 px-4 sm:px-6 py-3 rounded-xl flex-wrap justify-center w-full xl:w-auto">
+                                    <div className="text-emerald-400 flex items-center">Today Cash: <span className="font-mono ml-1">₹{todayCash}</span></div>
+                                    <div className="border-l border-white/10 h-5 hidden sm:block"></div>
+                                    <div className="text-sky-400 flex items-center">Today UPI: <span className="font-mono ml-1">₹{todayUpi}</span></div>
+                                    <div className="border-l border-white/10 h-5 hidden sm:block"></div>
+                                    <div className="text-red-400 flex items-center w-full sm:w-auto justify-center mt-2 sm:mt-0 border-t border-white/10 sm:border-0 pt-2 sm:pt-0">Total Rev: <span className="font-mono ml-1 text-base sm:text-lg">₹{todayTotal}</span></div>
+                                </div>
+                            )}
+                            <div className="flex items-center gap-3 w-full xl:w-auto justify-end">
+                                <LiveClock />
+                            </div>
+                        </header>
+
+                        {/* CAFE TAB VIEW */}
+                        {activeTab === 'dashboard' && (
+                            <div className="relative z-10 w-full animate-fade-in">
+                                <div className="glass-panel rounded-2xl border border-white/10 p-4 sm:p-5 mb-6 shadow-2xl relative w-full">
+                                    <div className="absolute top-0 right-0 bg-red-600/20 text-red-400 text-xs px-3 py-1 rounded-bl-xl border-l border-b border-red-500/20 font-bold z-10">{editingId && editingType==='cafe' ? "EDIT CAFE REGISTRATION" : "NEW CAFE REGISTRATION"}</div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 mt-4 lg:mt-2 mb-4 w-full">
+                                        <div className="flex flex-col gap-1 lg:col-span-1">
+                                            <label className="text-xs text-gray-400 font-semibold uppercase">Date</label>
+                                            <input type="date" value={cafeFormData.date} onChange={(e) => updateCafeForm("date", e.target.value)} className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-sm text-gray-200 outline-none focus:border-red-500 cursor-pointer"/>
+                                        </div>
+                                        <div className="flex flex-col gap-1 lg:col-span-1">
+                                            <label className="text-xs text-gray-400 font-semibold uppercase">Customer Details</label>
+                                            <div className="flex gap-2">
+                                                <input type="text" value={cafeFormData.name} onChange={(e) => updateCafeForm("name", e.target.value)} className="bg-black/50 border border-white/10 rounded-lg p-2.5 text-sm w-1/2 outline-none focus:border-red-500 text-white" placeholder="Name"/>
+                                                <input type="text" value={cafeFormData.phNum} onChange={(e) => updateCafeForm("phNum", e.target.value)} className="bg-black/50 border border-white/10 rounded-lg p-2.5 text-sm w-1/2 outline-none focus:border-red-500 text-white" placeholder="Phone"/>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="flex flex-col gap-2 sm:col-span-2 lg:col-span-2 bg-red-900/10 p-3 rounded-xl border border-red-500/20">
+                                            <div className="flex justify-between items-center ml-1">
+                                                <label className="text-xs text-red-400 font-bold uppercase"><i className="fa-solid fa-gamepad mr-2"></i> Play Console</label>
+                                                <span className="text-xs font-bold text-emerald-400 bg-black/40 px-2 py-0.5 rounded border border-white/10 font-mono shadow-inner">Live Total: ₹{currentBookingPreviewTotal}</span>
+                                            </div>
+                                            <div className="flex gap-2 items-end">
+                                                <select value={cafeFormData.currentModule} onChange={e => updateCafeForm('currentModule', e.target.value)} className="w-[40%] bg-black/50 border border-white/10 rounded-lg p-2.5 text-sm outline-none focus:border-red-500 text-white cursor-pointer">
+                                                    <option value="">Select</option>
+                                                    {safeModules.map(m => <option key={m.name} value={m.name}>{m.name}</option>)}
+                                                </select>
+                                                <input type="number" min="1" value={cafeFormData.currentNop} onChange={e => updateCafeForm('currentNop', e.target.value)} className="w-[20%] bg-black/50 border border-white/10 rounded-lg p-2.5 text-sm text-center outline-none focus:border-red-500 text-white" placeholder="Pax"/>
+                                                <input type="text" value={cafeFormData.currentHours} onChange={e => updateCafeForm('currentHours', e.target.value)} className="w-[20%] bg-black/50 border border-white/10 rounded-lg p-2.5 text-sm text-center outline-none focus:border-red-500 text-white" placeholder="Hrs"/>
+                                                <button onClick={addCafeBooking} className="w-[20%] bg-red-600 hover:bg-red-500 text-white rounded-lg font-bold text-lg shadow-md flex items-center justify-center h-[42px] transition"><i className="fa-solid fa-plus"></i></button>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex flex-col gap-1 sm:col-span-2 lg:col-span-2">
+                                            <label className="text-xs text-gray-400 font-semibold uppercase">Snacks & Beverages</label>
+                                            <div className="flex gap-2">
+                                                <select onChange={(e) => { addCafeOrder(e.target.value, 'food', safeFood); e.target.value=""; }} className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-sm outline-none focus:border-red-500 text-white cursor-pointer"><option value="">+ Add Food</option>{Object.keys(safeFood).map(k => <option key={k} value={k}>{k} (₹{safeFood[k]})</option>)}</select>
+                                                <select onChange={(e) => { addCafeOrder(e.target.value, 'juice', safeJuice); e.target.value=""; }} className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-sm outline-none focus:border-red-500 text-white cursor-pointer"><option value="">+ Add Juice</option>{Object.keys(safeJuice).map(k => <option key={k} value={k}>{k} (₹{safeJuice[k]})</option>)}</select>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {Array.isArray(cafeFormData.bookings) && cafeFormData.bookings.length > 0 && (
+                                        <div className="mb-2 bg-black/30 border border-red-500/10 p-3 rounded-xl flex gap-2 items-center flex-wrap">
+                                            {cafeFormData.bookings.map((b, i) => (
+                                                <div key={i} className="bg-zinc-800 border border-red-500/30 text-white text-xs px-2 py-1.5 rounded-lg flex items-center gap-2 shadow-md">
+                                                    <span className="font-bold">{b.module}</span> 
+                                                    <span className="text-gray-400">({b.nop}P, {b.hours}h {b.extraMins > 0 ? `+${b.extraMins}m` : ''})</span>
+                                                    <button onClick={(e) => { e.preventDefault(); addExtraMinsToCafe(i, 10); }} className="bg-sky-900/50 text-sky-400 px-1.5 py-0.5 rounded text-[10px] font-mono hover:bg-sky-600/50">+10m</button>
+                                                    <button onClick={(e) => { e.preventDefault(); addExtraMinsToCafe(i, 30); }} className="bg-sky-900/50 text-sky-400 px-1.5 py-0.5 rounded text-[10px] font-mono hover:bg-sky-600/50">+30m</button>
+                                                    <button onClick={(e) => { e.preventDefault(); removeCafeBooking(i); }} className="text-red-400 hover:text-red-300 ml-1 border-l border-white/10 pl-2"><i className="fa-solid fa-trash-can"></i></button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    {Array.isArray(cafeFormData.orders) && cafeFormData.orders.length > 0 && (
+                                        <div className="mb-4 bg-black/30 border border-amber-500/10 p-3 rounded-xl flex gap-2 items-center flex-wrap">
+                                            {cafeFormData.orders.map((o, i) => (
+                                                <div key={i} className="bg-zinc-800 border border-amber-500/20 text-white text-xs px-2.5 py-1 rounded-full flex items-center gap-2 shadow-md">
+                                                    <button onClick={(e) => { e.preventDefault(); updateCafeOrderQty(o.item, -1); }} className="text-gray-400 px-1 font-bold bg-white/5 rounded hover:text-white">-</button>
+                                                    <span className="w-4 text-center font-bold">{o.qty}</span>
+                                                    <button onClick={(e) => { e.preventDefault(); updateCafeOrderQty(o.item, 1); }} className="text-gray-400 px-1 font-bold bg-white/5 rounded hover:text-emerald-400">+</button>
+                                                    <span>{o.item}</span> <span className="text-amber-400 font-bold ml-1">₹{o.price * o.qty}</span>
+                                                    <button onClick={(e) => { e.preventDefault(); removeCafeOrder(o.item); }} className="text-red-400 ml-1 pl-2 border-l border-white/10 hover:text-red-300"><i className="fa-solid fa-xmark"></i></button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-4 items-end border-t border-white/5 pt-4 w-full">
+                                        <div className="flex flex-col gap-1">
+                                            <label className="text-xs text-gray-400 font-semibold uppercase">Timing Logs</label>
+                                            <div className="flex gap-2">
+                                                <input type="text" value={cafeFormData.inTime} onChange={(e) => updateCafeForm("inTime", e.target.value)} className="bg-black/50 border border-white/10 rounded-lg p-2.5 text-sm w-1/2 outline-none focus:border-red-500 text-center text-white" placeholder="Auto / In"/>
+                                                <input type="text" value={cafeFormData.outTime} onChange={(e) => updateCafeForm("outTime", e.target.value)} className="bg-black/50 border border-white/10 rounded-lg p-2.5 text-sm w-1/2 outline-none focus:border-red-500 text-center text-white" placeholder="Out"/>
+                                            </div>
+                                        </div>
+                                        <div className="flex flex-col gap-1">
+                                            <label className="text-xs text-gray-400 font-semibold uppercase">Status</label>
+                                            <select value={cafeFormData.status} onChange={(e) => updateCafeForm("status", e.target.value)} className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-sm outline-none focus:border-red-500 text-white cursor-pointer">
+                                                <option value="Pending">Pending</option><option value="Active">Active</option><option value="Completed">Completed</option>
+                                            </select>
+                                        </div>
+                                        <div className="flex flex-col gap-1">
+                                            <label className="text-xs text-emerald-400 font-semibold"><i className="fa-solid fa-money-bill text-[10px]"></i> Smart Cash (₹)</label>
+                                            <input type="number" value={cafeFormData.paymentCash} onChange={(e) => handleCafePaymentChange("paymentCash", e.target.value)} className="w-full bg-black/50 border border-emerald-500/30 rounded-lg p-2.5 text-sm outline-none text-white focus:border-emerald-500 font-mono" placeholder="Cash Amount"/>
+                                        </div>
+                                        <div className="flex flex-col gap-1">
+                                            <label className="text-xs text-sky-400 font-semibold"><i className="fa-solid fa-qrcode text-[10px]"></i> Smart UPI (₹)</label>
+                                            <input type="number" value={cafeFormData.paymentUpi} onChange={(e) => handleCafePaymentChange("paymentUpi", e.target.value)} className="w-full bg-black/50 border border-sky-500/30 rounded-lg p-2.5 text-sm outline-none text-white focus:border-sky-500 font-mono" placeholder="UPI Amount"/>
+                                        </div>
+                                        <div className="flex flex-col gap-1 bg-black/30 p-2.5 rounded-lg sm:col-span-2 md:col-span-1 lg:col-span-2 shadow-inner border border-white/5 w-full">
+                                            <div className="text-[11px] text-gray-400 flex justify-between"><span>Console Charge:</span> <span className="text-emerald-400 font-bold">₹{cafeTotals.bookingAmt}</span></div>
+                                            <div className="text-[11px] text-gray-400 flex justify-between mt-0.5"><span>Snacks Charge:</span> <span className="text-amber-400 font-bold">₹{cafeTotals.foodJuiceAmount}</span></div>
+                                            <div className="text-sm font-bold flex justify-between mt-1 pt-1 border-t border-white/10 text-white"><span>Total Bill:</span> <span className="text-red-400 font-mono">₹{cafeTotals.grandTotal}</span></div>
+                                        </div>
+                                        <button onClick={()=>saveSession('cafe')} className="w-full sm:col-span-2 md:col-span-3 lg:col-span-1 bg-red-600 hover:bg-red-500 text-white font-bold rounded-lg p-3 transition shadow-lg">{editingId && editingType==='cafe' ? "Update Record" : "+ Register Entry"}</button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* RETAIL STORE DASHBOARD VIEW */}
+                        {activeTab === 'sales_dashboard' && (
+                            <div className="relative z-10 w-full animate-fade-in">
+                                <div className="glass-panel rounded-2xl border border-white/10 p-4 sm:p-5 mb-6 shadow-2xl relative w-full border-t-4 border-t-emerald-500">
+                                    <div className="absolute top-0 right-0 bg-emerald-600/20 text-emerald-400 text-xs px-3 py-1 rounded-bl-xl border-l border-b border-emerald-500/20 font-bold z-10">{editingId && editingType==='retail' ? "EDIT CONSOLE PURCHASE" : "IN-STORE CONSOLE PURCHASE & EMI"}</div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-4 lg:mt-2 mb-4 w-full">
+                                        <div className="flex flex-col gap-1">
+                                            <label className="text-xs text-gray-400 font-semibold uppercase">Purchase Date & Time</label>
+                                            <div className="flex gap-2">
+                                                <input type="date" value={retailFormData.date} onChange={(e) => updateRetailForm("date", e.target.value)} className="w-[60%] bg-black/50 border border-white/10 rounded-lg p-2.5 text-sm outline-none focus:border-emerald-500 text-white cursor-pointer"/>
+                                                <input type="text" value={retailFormData.inTime} onChange={(e) => updateRetailForm("inTime", e.target.value)} className="w-[40%] bg-black/50 border border-white/10 rounded-lg p-2.5 text-sm outline-none focus:border-emerald-500 text-white text-center" placeholder="Time"/>
+                                            </div>
+                                        </div>
+                                        <div className="flex flex-col gap-1">
+                                            <label className="text-xs text-gray-400 font-semibold uppercase">Customer Information</label>
+                                            <div className="flex gap-2">
+                                                <input type="text" value={retailFormData.name} onChange={(e) => updateRetailForm("name", e.target.value)} className="bg-black/50 border border-white/10 rounded-lg p-2.5 text-sm w-1/2 outline-none focus:border-emerald-500 text-white" placeholder="Client Name"/>
+                                                <input type="text" value={retailFormData.phNum} onChange={(e) => updateRetailForm("phNum", e.target.value)} className="bg-black/50 border border-white/10 rounded-lg p-2.5 text-sm w-1/2 outline-none focus:border-emerald-500 text-white" placeholder="Phone Link"/>
+                                            </div>
+                                        </div>
+                                        <div className="flex flex-col gap-1">
+                                            <label className="text-xs text-gray-400 font-semibold uppercase">Select Hardware / Console</label>
+                                            <select value={retailFormData.saleItem} onChange={e => handleRetailSelect(e.target.value)} className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-sm outline-none focus:border-emerald-500 text-white cursor-pointer">
+                                                <option value="">-- Choose Product --</option>
+                                                {Object.keys(safeSales).map(k => <option key={k} value={k}>{k} (₹{safeSales[k]})</option>)}
+                                            </select>
+                                        </div>
+                                        {retailFormData.saleItem && (
+                                            <div className="flex gap-2 items-end">
+                                                <div className="flex flex-col w-1/2">
+                                                    <span className="text-[10px] text-gray-400 uppercase font-semibold ml-1 mb-1">Invoice Value (₹)</span>
+                                                    <input type="number" value={retailFormData.salePrice} onChange={e => updateRetailForm('salePrice', e.target.value)} className="w-full bg-black/50 border border-white/10 rounded-lg p-2.5 text-sm outline-none focus:border-emerald-500 text-center font-bold text-white font-mono"/>
+                                                </div>
+                                                <div className="flex w-1/2 h-[42px] glass-panel border border-white/10 rounded-lg p-1 items-center justify-between">
+                                                    <button onClick={()=>handleRetailEmiToggle('full')} type="button" className={`flex-1 text-center py-1.5 rounded text-[11px] font-bold transition-all ${retailFormData.saleType==='full'?'bg-emerald-600 text-white shadow':'text-gray-400 hover:text-white'}`}>Full Paid</button>
+                                                    <button onClick={()=>handleRetailEmiToggle('emi')} type="button" className={`flex-1 text-center py-1.5 rounded text-[11px] font-bold transition-all ${retailFormData.saleType==='emi'?'bg-amber-600 text-white shadow':'text-gray-400 hover:text-white'}`}>EMI Plan</button>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* CALCULATOR INTERFACE */}
+                                    {retailFormData.saleItem && retailFormData.saleType === 'emi' && (
+                                        <div className="flex flex-wrap gap-4 items-end mt-4 mb-4 bg-emerald-900/10 p-4 rounded-xl border border-emerald-500/20 shadow-inner">
+                                            <div className="flex flex-col flex-1 min-w-[120px]">
+                                                <span className="text-[10px] text-emerald-400 uppercase font-bold ml-1 mb-1">Downpayment Today (₹)</span>
+                                                <input type="number" value={retailFormData.saleDownpayment} onChange={e => updateRetailForm('saleDownpayment', e.target.value)} className="w-full bg-black/50 border border-emerald-500/30 rounded-lg p-2.5 text-sm outline-none focus:border-emerald-500 text-center font-bold text-white font-mono"/>
+                                            </div>
+                                            <div className="flex flex-col flex-1 min-w-[120px]">
+                                                <span className="text-[10px] text-red-400 uppercase font-bold ml-1 mb-1">Remaining EMI Debt (₹)</span>
+                                                <div className="w-full bg-black/60 border border-red-500/20 p-2.5 rounded-lg text-sm text-center font-bold text-red-400 font-mono">₹{Math.max(0, retailFormData.salePrice - (retailFormData.saleDownpayment||0))}</div>
+                                            </div>
+                                            <div className="flex flex-col flex-1 min-w-[160px]">
+                                                <span className="text-[10px] text-sky-400 uppercase font-bold ml-1 mb-1">Tenure / Tenure Type</span>
+                                                <div className="flex gap-2">
+                                                    <input type="number" min="1" value={retailFormData.emiDuration} onChange={e => updateRetailForm('emiDuration', e.target.value)} className="w-1/2 bg-black/50 border border-white/10 rounded-lg p-2.5 text-sm text-center outline-none focus:border-emerald-500 text-white font-mono"/>
+                                                    <select value={retailFormData.emiDurationType} onChange={e => updateRetailForm('emiDurationType', e.target.value)} className="w-1/2 bg-black/50 border border-white/10 rounded-lg p-2 text-xs outline-none focus:border-emerald-500 text-sky-400 cursor-pointer px-1 font-bold">
+                                                        <option value="months">Months</option><option value="days">Days</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <div className="flex flex-col flex-1 min-w-[150px]">
+                                                <span className="text-[10px] text-amber-400 uppercase font-bold ml-1 mb-1">Calculated Premium Amount</span>
+                                                <div className="w-full bg-amber-900/20 border border-amber-500/30 p-2.5 rounded-lg text-sm text-center font-bold text-amber-400 font-mono">
+                                                    ₹{((retailFormData.salePrice - (retailFormData.saleDownpayment||0)) / (retailFormData.emiDuration || 1)).toFixed(2)} / {(retailFormData.emiDurationType||'months').slice(0,-1)}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 items-end border-t border-white/5 pt-4 w-full">
+                                        <div className="flex flex-col gap-1">
+                                            <label className="text-xs text-emerald-400 font-semibold"><i className="fa-solid fa-money-bill text-[10px]"></i> Store Cash (₹)</label>
+                                            <input type="number" value={retailFormData.paymentCash} onChange={(e) => handleRetailPaymentChange("paymentCash", e.target.value)} className="w-full bg-black/50 border border-emerald-500/30 rounded-lg p-3 text-sm outline-none text-white focus:border-emerald-500 font-mono" placeholder="Cash field"/>
+                                        </div>
+                                        <div className="flex flex-col gap-1">
+                                            <label className="text-xs text-sky-400 font-semibold"><i className="fa-solid fa-qrcode text-[10px]"></i> Store UPI (₹)</label>
+                                            <input type="number" value={retailFormData.paymentUpi} onChange={(e) => handleRetailPaymentChange("paymentUpi", e.target.value)} className="w-full bg-black/50 border border-sky-500/30 rounded-lg p-3 text-sm outline-none text-white focus:border-sky-500 font-mono" placeholder="UPI field"/>
+                                        </div>
+                                        <div className="flex flex-col gap-1 bg-emerald-900/10 p-2.5 rounded-lg border border-emerald-500/20 text-center">
+                                            <span className="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-0.5">Today Sale Booked Value</span>
+                                            <span className="text-lg font-bold text-emerald-400 font-mono">₹{retailTotals.grandTotal}</span>
+                                        </div>
+                                        <button onClick={()=>saveSession('retail')} disabled={!retailFormData.saleItem} className={`w-full p-3.5 rounded-lg font-bold text-white transition ${!retailFormData.saleItem ? 'bg-zinc-800 text-gray-600 cursor-not-allowed border border-white/5' : 'bg-emerald-600 hover:bg-emerald-500 shadow-lg'}`}>{editingId && editingType==='retail' ? "Update Invoice" : "+ Record Retail Purchase"}</button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* LIVE SYSTEM REGISTER LOGVIEW PANEL */}
+                        {(activeTab === 'dashboard' || activeTab === 'sales_dashboard') && (
+                            <div className="glass-panel rounded-2xl overflow-hidden border border-white/10 shadow-2xl w-full mt-6">
+                                <div className="bg-zinc-900/60 p-3 border-b border-white/10 text-gray-300 font-semibold text-sm flex justify-between items-center">
+                                    <span><i className="fa-solid fa-clock-rotate-left mr-2"></i> Operational Activity Log - Today ({formatDateForDisplay(todayStrInput)})</span>
+                                </div>
+                                <div className="overflow-x-auto w-full">
+                                    <table className="w-full text-left text-sm whitespace-nowrap min-w-[1000px]">
+                                        <thead>
+                                            <tr className="bg-black/60 border-b border-white/10 text-gray-400 text-xs uppercase tracking-wider">
+                                                <th className="p-3 pl-4">Type</th>
+                                                <th className="p-3">Customer & Logs</th>
+                                                <th className="p-3">Breakdown Details</th>
+                                                <th className="p-3 text-center w-52">Active Timers</th>
+                                                <th className="p-3 text-right">Cash / UPI Split</th>
+                                                <th className="p-3 text-right text-red-400 w-32">Overall Total</th>
+                                                <th className="p-3 text-center pr-4">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-white/5 text-gray-200">
+                                            {todaySessions.length === 0 ? (
+                                                <tr><td colSpan="7" className="p-8 text-center text-gray-500">No events registered for today yet.</td></tr>
+                                            ) : todaySessions.map((row) => {
+                                                const isRet = row.recordType === 'retail' || row.saleItem;
+                                                return (
+                                                <tr key={row.id} className={`glass-table-row ${editingId === row.id ? 'bg-amber-900/20' : ''}`}>
+                                                    <td className="p-3 pl-4">
+                                                        {isRet ? <span className="bg-emerald-900/30 text-emerald-400 text-[10px] px-2 py-1 rounded border border-emerald-500/20 font-bold"><i className="fa-solid fa-store mr-1"></i> RETAIL</span> : <span className="bg-red-900/30 text-red-400 text-[10px] px-2 py-1 rounded border border-red-500/20 font-bold"><i className="fa-solid fa-gamepad mr-1"></i> CAFE</span>}
+                                                    </td>
+                                                    <td className="p-3">
+                                                        <div className="font-bold text-white">{row.name || 'Walk-in Client'}</div>
+                                                        <div className="text-[10px] text-gray-500 font-mono mt-0.5">{row.phNum || 'No Phone'} | {row.inTime}</div>
+                                                    </td>
+                                                    <td className="p-3 text-xs">
+                                                        {!isRet ? (
+                                                            <>
+                                                                {Array.isArray(row.bookings) && row.bookings.length > 0 ? (
+                                                                    row.bookings.map((b, idx) => <div key={idx} className="text-red-300 font-semibold">{b.module} <span className="text-gray-500 text-[10px]">({b.nop}P, {b.hours}h {b.extraMins > 0 ? `+${b.extraMins}m` : ''})</span></div>)
+                                                                ) : row.booking ? (
+                                                                    <div className="text-red-300 font-semibold">{row.booking} <span className="text-gray-500 text-[10px]">({row.hours||0}h)</span></div>
+                                                                ) : null}
+                                                                {Array.isArray(row.orders) && row.orders.length > 0 && <div className="text-[10px] text-amber-400 mt-1"><i className="fa-solid fa-utensils mr-1"></i>{row.orders.map(o=>`${o.qty}x ${o.item}`).join(', ')}</div>}
+                                                            </>
+                                                        ) : (
+                                                            <div className="text-xs text-emerald-400 font-semibold">
+                                                                <i className="fa-solid fa-box mr-1"></i> {row.saleItem} (Price: ₹{row.salePrice})
+                                                                {row.saleType === 'emi' && <div className="text-[10px] text-amber-400 mt-0.5">EMI Debt: ₹{(row.salePrice||0)-(row.saleDownpayment||0)} / Duration: {row.emiDuration} {row.emiDurationType}</div>}
+                                                            </div>
+                                                        )}
+                                                    </td>
+                                                    <td className="p-2 text-center">
+                                                        {!isRet ? <MultiTimerWrapper row={row} onControl={controlTimer} onUpdateInput={updateTimerInput} onAddTimer={addTimerToRow} onRemoveTimer={removeTimerFromRow} /> : <span className="text-xs text-gray-600 italic font-mono">POS Terminal</span>}
+                                                    </td>
+                                                    <td className="p-3 text-right text-xs font-mono">
+                                                        <div className="text-emerald-400">Cash: ₹{row.paymentCash || 0}</div>
+                                                        <div className="text-sky-400 border-t border-white/5 mt-0.5 pt-0.5">UPI: ₹{row.paymentUpi || 0}</div>
+                                                    </td>
+                                                    <td className="p-3 text-right font-mono bg-black/10">
+                                                        <span className="text-base font-bold text-white">₹{row.grandTotal}</span>
+                                                    </td>
+                                                    <td className="p-3 text-center pr-4">
+                                                        <div className="flex gap-2 justify-center">
+                                                            <button onClick={() => setPrintBillData(row)} className="text-gray-400 hover:text-emerald-400 bg-white/5 p-2 rounded-lg" title="Generate Invoice"><i className="fa-solid fa-file-invoice"></i></button>
+                                                            <button onClick={() => handleEditEntry(row)} className="text-gray-400 hover:text-amber-400 bg-white/5 p-2 rounded-lg" title="Edit Log"><i className="fa-solid fa-pen-to-square"></i></button>
+                                                            <button onClick={() => deleteSession(row.id)} className="text-gray-400 hover:text-red-500 bg-white/5 p-2 rounded-lg" title="Purge Record"><i className="fa-solid fa-trash-can"></i></button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            )})}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* COMP committed PERMANENT STORAGE SYSTEM WORKSPACE SETTINGS */}
+                        {activeTab === 'settings_workspace' && (
+                            <div className="glass-panel rounded-2xl p-4 sm:p-6 shadow-2xl relative z-10 w-full animate-fade-in text-gray-200 border-t-4 border-t-amber-500">
+                                <div className="border-b border-white/10 pb-4 mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                                    <div>
+                                        <h2 className="text-xl font-bold text-white flex items-center gap-2"><i className="fa-solid fa-gears text-amber-500"></i> Master Database Inventory Settings Workspace</h2>
+                                        <p className="text-xs text-gray-400 mt-1">Independent layout configuration dashboard blocks. Form typing lag completely eliminated.</p>
+                                    </div>
+                                    {settingsMsg && <div className="bg-emerald-900/30 border border-emerald-500/30 text-emerald-400 px-4 py-2 rounded-xl text-xs font-bold animate-pulse">{settingsMsg}</div>}
+                                </div>
+
+                                <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                                    {/* 1. RETAIL HARDWARE PRODUCTS MANAGER */}
+                                    <div className="bg-black/30 border border-white/5 p-4 rounded-xl flex flex-col justify-between">
+                                        <div>
+                                            <h3 className="text-base font-bold text-emerald-400 flex items-center gap-2 mb-4"><i className="fa-solid fa-store"></i> Retail Sales & Hardware Products Store Catalog</h3>
+                                            <form onSubmit={(e)=>appendCatalogItem(e, 'sales', newSaleName, newSalePrice)} className="grid grid-cols-3 gap-2 mb-4">
+                                                <input type="text" placeholder="Product Name (e.g. PS5 CD, Controller)" value={newSaleName} onChange={e=>setNewSaleName(e.target.value)} className="col-span-2 bg-zinc-950 border border-white/10 rounded-lg p-2 text-xs text-white outline-none focus:border-emerald-500" required />
+                                                <div className="flex gap-1">
+                                                    <input type="number" placeholder="₹ Rate" value={newSalePrice} onChange={e=>setNewSalePrice(e.target.value)} className="w-full bg-zinc-950 border border-white/10 rounded-lg p-2 text-xs text-center text-emerald-400 font-bold outline-none focus:border-emerald-500" required />
+                                                    <button type="submit" className="bg-emerald-600 hover:bg-emerald-500 text-white px-3.5 rounded-lg text-xs font-bold font-mono"><i className="fa-solid fa-plus"></i></button>
+                                                </div>
+                                            </form>
+                                            <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
+                                                {Object.entries(safeSales).map(([k, v]) => (
+                                                    <div key={k} className="flex justify-between items-center bg-zinc-950/40 border border-white/5 p-2 rounded-lg text-xs">
+                                                        <span className="font-medium text-gray-300">{k}</span>
+                                                        <div className="flex items-center gap-3">
+                                                            <span className="font-bold text-emerald-400 font-mono">₹{v}</span>
+                                                            <button onClick={() => editCatalogItem('sales', k, v)} className="text-sky-400 hover:text-sky-300 transition p-1" title="Edit Item"><i className="fa-solid fa-pencil"></i></button>
+                                                            <button onClick={() => purgeCatalogItem('sales', k)} className="text-red-500 hover:text-red-400 transition p-1 ml-1" title="Delete Item"><i className="fa-solid fa-trash-can"></i></button>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* 2. CONSOLE PLAY MODULES ENGINE MANAGER */}
+                                    <div className="bg-black/30 border border-white/5 p-4 rounded-xl flex flex-col justify-between">
+                                        <div>
+                                            <h3 className="text-base font-bold text-red-400 flex items-center gap-2 mb-4"><i className="fa-solid fa-gamepad"></i> Console & Station Play Modules</h3>
+                                            <form onSubmit={appendPlayModule} className="flex flex-col gap-2 mb-4">
+                                                <div className="grid grid-cols-3 gap-2">
+                                                    <input type="text" placeholder="Module Name (PS5, VR, PC)" value={newModName} onChange={e=>setNewModName(e.target.value)} className="bg-zinc-950 border border-white/10 rounded-lg p-2 text-xs text-white outline-none focus:border-red-500" required />
+                                                    <select value={newModType} onChange={e=>setNewModType(e.target.value)} className="bg-zinc-950 border border-white/10 rounded-lg p-2 text-xs text-white outline-none focus:border-red-500 cursor-pointer">
+                                                        <option value="pax">Per Pax Billing</option><option value="flat">Flat Hourly Billing</option><option value="party">Party Package</option>
+                                                    </select>
+                                                    <div className="flex gap-1">
+                                                        <input type="number" placeholder="Rate 1" value={newModRate1} onChange={e=>setNewModRate1(e.target.value)} className="w-1/2 bg-zinc-950 border border-white/10 rounded-lg p-2 text-xs text-center text-white outline-none focus:border-red-500" required />
+                                                        <input type="number" placeholder="Rate 2" value={newModRate2} onChange={e=>setNewModRate2(e.target.value)} className="w-1/2 bg-zinc-950 border border-white/10 rounded-lg p-2 text-xs text-center text-white outline-none focus:border-red-500" />
+                                                        <button type="submit" className="bg-red-600 hover:bg-red-500 text-white px-2.5 rounded-lg text-xs font-bold">+</button>
+                                                    </div>
+                                                </div>
+                                            </form>
+                                            <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
+                                                {safeModules.map((m, idx) => (
+                                                    <div key={idx} className="flex justify-between items-center bg-zinc-950/40 border border-white/5 p-2 rounded-lg text-xs">
+                                                        <div>
+                                                            <span className="font-bold text-white uppercase">{m.name}</span>
+                                                            <span className="text-[10px] text-gray-500 border border-white/10 px-1.5 py-0.5 rounded-md ml-2 capitalize">{m.type}</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-3">
+                                                            <span className="font-mono font-semibold text-gray-300">R1: ₹{m.singleRate} | R2: ₹{m.multiRate}</span>
+                                                            <button onClick={() => purgePlayModule(idx)} className="text-red-500 hover:text-red-400 p-1"><i className="fa-solid fa-trash-can text-[11px]"></i></button>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* 3. SNACKS FOOD INVENTORY */}
+                                    <div className="bg-black/30 border border-white/5 p-4 rounded-xl">
+                                        <h3 className="text-base font-bold text-amber-400 flex items-center gap-2 mb-4"><i className="fa-solid fa-burger"></i> Cafe Snacks & Foods Menu</h3>
+                                        <form onSubmit={(e)=>appendCatalogItem(e, 'food', newFoodName, newFoodPrice)} className="grid grid-cols-3 gap-2 mb-4">
+                                            <input type="text" placeholder="Snack Item Name (e.g. Momo)" value={newFoodName} onChange={e=>setNewFoodName(e.target.value)} className="col-span-2 bg-zinc-950 border border-white/10 rounded-lg p-2.5 text-xs text-white outline-none focus:border-amber-500" required />
+                                            <div className="flex gap-1">
+                                                <input type="number" placeholder="₹ Rate" value={newFoodPrice} onChange={e=>setNewFoodPrice(e.target.value)} className="w-full bg-zinc-950 border border-white/10 rounded-lg p-2.5 text-xs text-center text-amber-400 font-bold outline-none focus:border-amber-500" required />
+                                                <button type="submit" className="bg-amber-600 hover:bg-amber-500 text-white px-3 safety-btn rounded-lg text-xs font-bold"><i className="fa-solid fa-plus"></i></button>
+                                            </div>
+                                        </form>
+                                        <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
+                                            {Object.entries(safeFood).map(([k, v]) => (
+                                                <div key={k} className="flex justify-between items-center bg-zinc-950/40 border border-white/5 p-2 rounded-lg text-xs">
+                                                    <span className="font-medium text-gray-300">{k}</span>
+                                                    <div className="flex items-center gap-3">
+                                                        <span className="font-bold text-amber-400 font-mono">₹{v}</span>
+                                                        <button onClick={() => editCatalogItem('food', k, v)} className="text-sky-400 hover:text-sky-300 transition p-1"><i className="fa-solid fa-pencil text-[11px]"></i></button>
+                                                        <button onClick={() => purgeCatalogItem('food', k)} className="text-red-500 hover:text-red-400 p-1"><i className="fa-solid fa-trash-can text-[11px]"></i></button>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* 4. BEVERAGES JUICE INVENTORY */}
+                                    <div className="bg-black/30 border border-white/5 p-4 rounded-xl">
+                                        <h3 className="text-base font-bold text-sky-400 flex items-center gap-2 mb-4"><i className="fa-solid fa-glass-water"></i> Beverages & Soft Juices Menu</h3>
+                                        <form onSubmit={(e)=>appendCatalogItem(e, 'juice', newJuiceName, newJuicePrice)} className="grid grid-cols-3 gap-2 mb-4">
+                                            <input type="text" placeholder="Juice Brand (e.g. Redbull, Hell)" value={newJuiceName} onChange={e=>setNewJuiceName(e.target.value)} className="col-span-2 bg-zinc-950 border border-white/10 rounded-lg p-2.5 text-xs text-white outline-none focus:border-sky-500" required />
+                                            <div className="flex gap-1">
+                                                <input type="number" placeholder="₹ Rate" value={newJuicePrice} onChange={e=>setNewJuicePrice(e.target.value)} className="w-full bg-zinc-950 border border-white/10 rounded-lg p-2.5 text-xs text-center text-sky-400 font-bold outline-none focus:border-sky-500" required />
+                                                <button type="submit" className="bg-sky-600 hover:bg-sky-500 text-white px-3 rounded-lg text-xs font-bold"><i className="fa-solid fa-plus"></i></button>
+                                            </div>
+                                        </form>
+                                        <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
+                                            {Object.entries(safeJuice).map(([k, v]) => (
+                                                <div key={k} className="flex justify-between items-center bg-zinc-950/40 border border-white/5 p-2 rounded-lg text-xs">
+                                                    <span className="font-medium text-gray-300">{k}</span>
+                                                    <div className="flex items-center gap-3">
+                                                        <span className="font-bold text-sky-400 font-mono">₹{v}</span>
+                                                        <button onClick={() => editCatalogItem('juice', k, v)} className="text-sky-400 hover:text-sky-300 transition p-1"><i className="fa-solid fa-pencil text-[11px]"></i></button>
+                                                        <button onClick={() => purgeCatalogItem('juice', k)} className="text-red-500 hover:text-red-400 p-1"><i className="fa-solid fa-trash-can text-[11px]"></i></button>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* SECURITY GATE */}
+                                <div className="mt-8 border-t border-white/10 pt-6">
+                                    <h3 className="text-sm font-bold text-gray-300 mb-4 uppercase tracking-widest"><i className="fa-solid fa-lock-open mr-2 text-sky-500"></i> Administration Security System Access Credentials</h3>
+                                    <form onSubmit={changeCredentials} className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-3xl">
+                                        <input type="text" placeholder="Update Username" value={newUsername} onChange={e=>setNewUsername(e.target.value)} className="bg-zinc-950 border border-white/10 rounded-xl p-2.5 text-xs text-white outline-none focus:border-sky-500" required />
+                                        <input type="password" placeholder="Update Password" value={newPassword} onChange={e=>setNewPassword(e.target.value)} className="bg-zinc-950 border border-white/10 rounded-xl p-2.5 text-xs text-white outline-none focus:border-sky-500" required />
+                                        <button type="submit" className="bg-zinc-800 hover:bg-zinc-700 border border-white/10 text-white text-xs font-bold rounded-xl transition">Change Access Credentials Lock</button>
+                                    </form>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* ANALYTICS REPORT TAB VIEW */}
+                        {['daily', 'weekly', 'monthly'].includes(activeTab) && (
+                            <div className="relative z-10 w-full animate-fade-in">
+                                <div className="glass-panel rounded-2xl overflow-hidden border border-white/10 shadow-2xl w-full">
+                                    <div className="bg-black/60 p-4 border-b border-white/10">
+                                        <h3 className="text-white font-bold capitalize">{activeTab} Revenue Summaries (Cafe + Store Merged)</h3>
+                                    </div>
+                                    <div className="overflow-x-auto w-full">
+                                        <table className="w-full text-left text-sm whitespace-nowrap min-w-[600px]">
+                                            <thead>
+                                                <tr className="bg-black/40 border-b border-white/10 text-gray-400 text-xs uppercase tracking-wider">
+                                                    <th className="p-4 pl-6">{activeTab === 'daily' ? 'Date Log' : activeTab === 'weekly' ? 'Weekly Framework' : 'Financial Month'}</th>
+                                                    <th className="p-4 text-center">Invoices Issued</th>
+                                                    <th className="p-4 text-right text-emerald-400">Cash Volume</th>
+                                                    <th className="p-4 text-right text-sky-400">UPI Volume</th>
+                                                    <th className="p-4 text-right font-bold text-red-400 pr-6">Overall Consolidated Revenue</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-white/5 text-gray-200">
+                                                {generateReportData(activeTab).map(([period, data]) => (
+                                                    <tr key={period} className="hover:bg-white/5 transition-colors">
+                                                        <td className="p-4 pl-6 font-bold tracking-wide">{formatPeriodLabel(period, activeTab)} {period === normalizeDate(todayStrInput) && <span className="ml-2 text-[10px] bg-red-600/30 text-red-400 px-2 py-0.5 rounded-full font-mono font-bold">TODAY</span>}</td>
+                                                        <td className="p-4 text-center text-gray-400">{data.count} entries</td>
+                                                        <td className="p-4 text-right text-emerald-400 font-mono text-base">₹{data.cash.toLocaleString('en-IN')}</td>
+                                                        <td className="p-4 text-right text-sky-400 font-mono text-base">₹{data.upi.toLocaleString('en-IN')}</td>
+                                                        <td className="p-4 text-right font-bold text-red-400 font-mono text-lg bg-black/20 pr-6">₹{data.total.toLocaleString('en-IN')}</td>
+                                                    </tr>
+                                                ))}
+                                                {generateReportData(activeTab).length === 0 && (
+                                                    <tr><td colSpan="5" className="p-8 text-center text-gray-500">No historical data available yet.</td></tr>
+                                                )}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* DATABASE HISTORY TAB */}
+                        {activeTab === 'history' && (
+                            <div className="glass-panel rounded-2xl overflow-hidden border border-white/10 shadow-2xl w-full animate-fade-in border-t-4 border-t-amber-500">
+                                <div className="bg-amber-900/20 p-4 border-b border-amber-500/20 text-amber-400 font-bold flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                                    <span><i className="fa-solid fa-database mr-2"></i> Cloud Data History Registry Logs</span>
+                                    <select value={historySort} onChange={e => setHistorySort(e.target.value)} className="bg-zinc-950 border border-white/10 text-xs text-amber-400 rounded-lg p-2 outline-none cursor-pointer font-bold">
+                                        <option value="timestamp_desc">Order Registered (Newest First)</option>
+                                        <option value="timestamp_asc">Order Registered (Oldest First)</option>
+                                        <option value="date_desc">Calendar Date (Newest First)</option>
+                                        <option value="date_asc">Calendar Date (Oldest First)</option>
+                                    </select>
+                                </div>
+                                <div className="overflow-x-auto w-full">
+                                    <table className="w-full text-left text-sm whitespace-nowrap min-w-[1000px]">
+                                        <thead>
+                                            <tr className="bg-black/60 border-b border-white/10 text-gray-400 text-xs uppercase tracking-wider">
+                                                <th className="p-3 pl-4">Date</th>
+                                                <th className="p-3">Type & Customer</th>
+                                                <th className="p-3">Itemized Particulars</th>
+                                                <th className="p-3 text-right">Cash Log</th>
+                                                <th className="p-3 text-right">UPI Log</th>
+                                                <th className="p-3 text-right text-red-400 w-32">Total Bill Value</th>
+                                                <th className="p-3 text-center pr-4">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-white/5 text-gray-200">
+                                            {sortedHistory.slice(0, historyLimit).map((row) => {
+                                                const isRet = row.recordType === 'retail' || row.saleItem;
+                                                return (
+                                                <tr key={row.id} className="glass-table-row hover:bg-white/5 transition-colors">
+                                                    <td className="p-3 pl-4 font-mono text-xs text-gray-400">{formatDateForDisplay(row.date)}</td>
+                                                    <td className="p-3 font-semibold">
+                                                        <div>{row.name || 'Walk-in'}</div>
+                                                        <div className="text-[10px] mt-0.5 font-bold">{isRet ? <span className="text-emerald-400"><i className="fa-solid fa-store mr-1"></i>STORE CONSOLE</span> : <span className="text-red-400"><i className="fa-solid fa-gamepad mr-1"></i>CAFE STATION</span>}</div>
+                                                    </td>
+                                                    <td className="p-3 text-xs">
+                                                        {!isRet ? (
+                                                            <>
+                                                                {Array.isArray(row.bookings) && row.bookings.map((b, idx) => <div key={idx} className="text-gray-300 font-medium">{b.module} ({b.nop}P, {b.hours}h)</div>)}
+                                                                {Array.isArray(row.orders) && row.orders.length > 0 && <div className="text-amber-400/80 mt-0.5">{row.orders.map(o=>`${o.qty}x ${o.item}`).join(', ')}</div>}
+                                                            </>
+                                                        ) : (
+                                                            <div className="text-emerald-400 font-medium">
+                                                                {row.saleItem} (Price: ₹{row.salePrice}) {row.saleType === 'emi' && <span className="text-amber-400 block text-[10px] font-bold">EMI Framework Loan Active</span>}
+                                                            </div>
+                                                        )}
+                                                    </td>
+                                                    <td className="p-3 text-right font-mono text-emerald-400">₹{row.paymentCash || 0}</td>
+                                                    <td className="p-3 text-right font-mono text-sky-400">₹{row.paymentUpi || 0}</td>
+                                                    <td className="p-3 text-right font-bold text-white bg-black/10 font-mono">₹{row.grandTotal}</td>
+                                                    <td className="p-3 text-center pr-4">
+                                                        <div className="flex gap-2 justify-center">
+                                                            <button onClick={() => setPrintBillData(row)} className="text-gray-400 hover:text-emerald-400 p-2 bg-white/5 rounded-lg" title="Download PDF Bill"><i className="fa-solid fa-file-invoice"></i></button>
+                                                            <button onClick={() => handleEditEntry(row)} className="text-gray-400 hover:text-amber-400 p-2 bg-white/5 rounded-lg" title="Edit Log"><i className="fa-solid fa-pen-to-square"></i></button>
+                                                            <button onClick={() => deleteSession(row.id)} className="text-gray-400 hover:text-red-500 p-2 bg-white/5 rounded-lg" title="Purge Record"><i className="fa-solid fa-trash-can"></i></button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            )})}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                {sortedHistory.length > historyLimit && (
+                                    <div className="p-4 text-center bg-black/40 border-t border-white/10">
+                                        <button onClick={() => setHistoryLimit(prev => prev + 50)} className="bg-amber-600/80 hover:bg-amber-500 text-white px-6 py-2.5 rounded-xl text-sm font-bold transition">Load 50 More Logs</button>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* STATEMENT EXCEL VIEW */}
+                        {activeTab === 'statement' && (
+                            <div className="glass-panel rounded-2xl border border-white/10 p-4 sm:p-6 shadow-2xl relative z-10 w-full animate-fade-in border-t-4 border-t-sky-500">
+                                <div className="text-center mb-8 mt-4">
+                                    <div className="inline-block p-5 bg-emerald-900/20 rounded-full mb-4 border border-emerald-500/30"><i className="fa-solid fa-file-excel text-4xl text-emerald-400"></i></div>
+                                    <h2 className="text-xl sm:text-2xl font-bold text-white mb-2">Custom Balanced Bank Statement Auditor</h2>
+                                    <p className="text-gray-400 text-xs sm:text-sm">Filter date records to export itemized fields flawlessly into Excel spreadsheet format logs.</p>
+                                </div>
+                                <div className="flex flex-col md:flex-row gap-4 sm:gap-6 justify-center items-end max-w-3xl mx-auto mb-8 bg-black/40 p-4 sm:p-6 rounded-xl border border-white/5">
+                                    <div className="flex flex-col gap-2 flex-1 w-full">
+                                        <label className="text-xs text-gray-400 font-bold uppercase">Start Date</label>
+                                        <input type="date" value={customStart} onChange={(e) => setCustomStart(e.target.value)} className="w-full bg-black/50 border border-white/10 rounded-lg p-3 text-white outline-none cursor-pointer focus:border-emerald-500"/>
+                                    </div>
+                                    <div className="flex flex-col gap-2 flex-1 w-full">
+                                        <label className="text-xs text-gray-400 font-bold uppercase">End Date</label>
+                                        <input type="date" value={customEnd} onChange={(e) => setCustomEnd(e.target.value)} className="w-full bg-black/50 border border-white/10 rounded-lg p-3 text-white outline-none cursor-pointer focus:border-emerald-500"/>
+                                    </div>
+                                    <button onClick={exportCustomStatement} className="w-full md:w-auto bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3.5 px-8 rounded-lg shadow-lg transition flex items-center justify-center gap-2"><i className="fa-solid fa-download"></i> Export Balance Sheet</button>
+                                </div>
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 max-w-4xl mx-auto">
+                                    <div className="bg-black/40 border border-white/5 p-4 rounded-xl text-center">
+                                        <div className="text-xs text-gray-500 uppercase font-bold mb-1">Audit Entries</div>
+                                        <div className="text-xl sm:text-2xl font-mono font-bold text-white">{customFilteredSessions.length}</div>
+                                    </div>
+                                    <div className="bg-black/40 border border-emerald-500/20 p-4 rounded-xl text-center">
+                                        <div className="text-xs text-emerald-500/70 uppercase font-bold mb-1">Audit Cash Yield</div>
+                                        <div className="text-xl sm:text-2xl font-mono font-bold text-emerald-400">₹{customCash.toLocaleString('en-IN')}</div>
+                                    </div>
+                                    <div className="bg-black/40 border border-sky-500/20 p-4 rounded-xl text-center">
+                                        <div className="text-xs text-sky-500/70 uppercase font-bold mb-1">Audit UPI Yield</div>
+                                        <div className="text-xl sm:text-2xl font-mono font-bold text-sky-400">₹{customUpi.toLocaleString('en-IN')}</div>
+                                    </div>
+                                    <div className="bg-black/40 border border-red-500/20 p-4 rounded-xl text-center">
+                                        <div className="text-xs text-red-500/70 uppercase font-bold mb-1">Total Yield Vol</div>
+                                        <div className="text-xl sm:text-2xl font-mono font-bold text-red-400">₹{customTotal.toLocaleString('en-IN')}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                        
+                        {/* -------------------------------------------------------------
+                            INVOICE POPUP MODAL (Make Bill Generation & Auto PDF Download)
+                        -------------------------------------------------------------- */}
+                        {printBillData && (
+                            <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-sm overflow-y-auto flex justify-center items-start pt-10 pb-10 px-4">
+                                <div className="relative w-full max-w-md">
+                                    
+                                    {/* Download and Close Buttons */}
+                                    <div className="flex justify-end gap-2 mb-4 no-print">
+                                        <button onClick={handleDownloadPDF} className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg font-bold shadow-lg transition"><i className="fa-solid fa-download mr-2"></i>Download PDF</button>
+                                        <button onClick={() => setPrintBillData(null)} className="bg-zinc-800 hover:bg-red-600 text-white px-4 py-2 rounded-lg font-bold shadow-lg transition border border-white/10"><i className="fa-solid fa-xmark mr-2"></i>Cancel</button>
+                                    </div>
+
+                                    {/* The Printable Invoice Container */}
+                                    <div id="printable-bill" className="bg-white text-black p-6 sm:p-8 rounded-xl shadow-2xl relative">
+                                        
+                                        {/* Header */}
+                                        <div className="flex flex-col sm:flex-row justify-between items-center sm:items-start border-b-2 border-gray-800 pb-4 mb-5 gap-4">
+                                            <div className="w-32 h-32 flex-shrink-0">
+                                                <img src="V1 logo.png" alt="V1 Logo" className="w-full h-full object-contain" />
+                                            </div>
+                                            <div className="text-center sm:text-right">
+                                                <h2 className="text-3xl font-black uppercase tracking-widest text-black mb-1">V<span className="text-red-600">1</span> GAMING <span className="text-red-600">CAFE</span></h2>
+                                                <p className="text-xs text-gray-700 font-medium">1st floor, No:98, Red Hills Rd, Akbar Nagar,</p>
+                                                <p className="text-xs text-gray-700 font-medium">Kalpalayam, Kolathur, Chennai, Tamil Nadu 600099</p>
+                                                <p className="text-sm font-bold text-black mt-2">Proprietor: VINOTH KUMAR</p>
+                                                <p className="text-[10px] text-gray-500 uppercase mt-1 tracking-widest">Official Tax Invoice</p>
+                                            </div>
+                                        </div>
+
+                                        {/* Meta Information */}
+                                        <div className="flex justify-between text-sm mb-5 font-medium text-gray-800">
+                                            <div>
+                                                <p><strong>Date:</strong> {formatDateForDisplay(printBillData.date)}</p>
+                                                <p><strong>Time:</strong> {printBillData.inTime}</p>
+                                            </div>
+                                            <div className="text-right">
+                                                <p><strong>Bill No:</strong> #{printBillData.id.slice(-6).toUpperCase()}</p>
+                                                <p className="text-xs uppercase bg-gray-200 px-2 py-0.5 mt-1 rounded font-bold border border-gray-300 inline-block">{printBillData.recordType === 'retail' || printBillData.saleItem ? 'Store Purchase' : 'Cafe Booking'}</p>
+                                            </div>
+                                        </div>
+
+                                        {/* Customer Information */}
+                                        <div className="bg-gray-100 p-3 rounded-lg border border-gray-300 mb-5 text-sm">
+                                            <p className="mb-1"><strong className="text-gray-700">Bill To:</strong> <span className="font-bold text-black text-base">{printBillData.name || 'Walk-in Customer'}</span></p>
+                                            <p><strong className="text-gray-700">Phone:</strong> {printBillData.phNum || 'N/A'}</p>
+                                        </div>
+
+                                        {/* Conditional Render: Retail Bill vs Cafe Bill */}
+                                        {printBillData.recordType === 'retail' || printBillData.saleItem ? (
+                                            /* ---------------- RETAIL INVOICE ---------------- */
+                                            <div className="mb-6">
+                                                <h3 className="font-bold text-black border-b-2 border-gray-800 pb-1 mb-3 uppercase tracking-wider text-sm">Purchase Details</h3>
+                                                <div className="flex justify-between text-sm mb-2 font-medium text-gray-800">
+                                                    <span>{printBillData.saleItem}</span>
+                                                    <span className="font-bold text-black">₹{printBillData.salePrice}</span>
+                                                </div>
+                                                
+                                                {/* EMI Specific Breakdown */}
+                                                {printBillData.saleType === 'emi' && (
+                                                    <div className="bg-blue-50/50 p-3 rounded-lg border border-blue-200 mt-4 text-sm text-gray-800">
+                                                        <h4 className="font-bold text-blue-900 mb-2 border-b border-blue-200 pb-1 text-xs uppercase tracking-wide">EMI Loan Breakdown</h4>
+                                                        <div className="flex justify-between mb-1"><span>Initial Downpayment:</span> <span className="font-semibold text-black">₹{printBillData.saleDownpayment}</span></div>
+                                                        <div className="flex justify-between mb-1"><span>Remaining Debt:</span> <span className="font-semibold text-black">₹{printBillData.salePrice - printBillData.saleDownpayment}</span></div>
+                                                        <div className="flex justify-between mb-2"><span>Tenure Duration:</span> <span className="font-semibold text-black">{printBillData.emiDuration} {printBillData.emiDurationType}</span></div>
+                                                        
+                                                        <div className="flex justify-between font-bold mt-2 pt-2 border-t border-blue-300 text-blue-900">
+                                                            <span>Agreed Installment:</span> 
+                                                            <span>₹{((printBillData.salePrice - printBillData.saleDownpayment) / (printBillData.emiDuration || 1)).toFixed(2)} / {(printBillData.emiDurationType||'months').slice(0,-1)}</span>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ) : (
+                                            /* ---------------- CAFE INVOICE ---------------- */
+                                            <div className="mb-6">
+                                                <h3 className="font-bold text-black border-b-2 border-gray-800 pb-1 mb-3 uppercase tracking-wider text-sm">Service Particulars</h3>
+                                                
+                                                {/* Consoles */}
+                                                {printBillData.bookings && printBillData.bookings.length > 0 && (
+                                                    <div className="mb-3">
+                                                        <p className="text-xs font-bold text-gray-500 uppercase mb-1">Play Console</p>
+                                                        {printBillData.bookings.map((b, i) => (
+                                                            <div key={i} className="flex justify-between text-sm font-medium text-gray-800 mb-1">
+                                                                <span>{b.module} ({b.nop} Pax) - {b.hours} Hrs {b.extraMins > 0 ? ` +${b.extraMins}m` : ''}</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                                
+                                                {/* Snacks */}
+                                                {printBillData.orders && printBillData.orders.length > 0 && (
+                                                    <div className="mb-3">
+                                                        <p className="text-xs font-bold text-gray-500 uppercase mb-1">Food & Beverages</p>
+                                                        {printBillData.orders.map((o, i) => (
+                                                            <div key={i} className="flex justify-between text-sm font-medium text-gray-800 mb-1">
+                                                                <span>{o.qty} x {o.item}</span>
+                                                                <span>₹{o.price * o.qty}</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                                
+                                                {/* Cafe Subtotals */}
+                                                <div className="border-t border-gray-300 mt-2 pt-2 text-sm text-gray-700">
+                                                    <div className="flex justify-between mb-1"><span>Total Console Charge:</span> <span>₹{printBillData.amount}</span></div>
+                                                    <div className="flex justify-between"><span>Total F&B Charge:</span> <span>₹{printBillData.foodJuiceAmount}</span></div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Grand Total */}
+                                        <div className="border-t-2 border-black pt-3 mb-5 mt-2 bg-gray-100 p-3 rounded-lg">
+                                            <div className="flex justify-between items-center text-xl font-black text-black">
+                                                <span>GRAND TOTAL</span>
+                                                <span>₹{printBillData.grandTotal}</span>
+                                            </div>
+                                        </div>
+
+                                        {/* Payment Modes */}
+                                        <div className="text-xs font-semibold text-gray-700 border-t border-dashed border-gray-400 pt-3 flex justify-between bg-white px-2">
+                                            <span>Cash Paid: <strong className="text-black ml-1">₹{printBillData.paymentCash || 0}</strong></span>
+                                            <span>UPI Paid: <strong className="text-black ml-1">₹{printBillData.paymentUpi || 0}</strong></span>
+                                        </div>
+
+                                        {/* --- RETAIL WARRANTY CONDITIONS --- */}
+                                        {(printBillData.recordType === 'retail' || printBillData.saleItem) && (
+                                            <div className="mt-4 p-2 bg-gray-100 border border-gray-300 rounded text-[10px] text-gray-700 leading-snug">
+                                                <p className="font-bold text-black uppercase mb-1">Warranty Terms & Conditions:</p>
+                                                <ul className="list-disc pl-4">
+                                                    <li>This product is covered by a <strong>1-Year Store Warranty</strong> from the date of purchase.</li>
+                                                    <li><strong>Important:</strong> Warranty claims are strictly <strong>void</strong> for physical damages, liquid damage, and issues arising from power fluctuations or short circuits.</li>
+                                                </ul>
+                                            </div>
+                                        )}
+                                        
+                                        {/* Footer */}
+                                        <div className="flex flex-col sm:flex-row justify-between items-end mt-8 border-t-2 border-dashed border-gray-400 pt-4 gap-4">
+                                            <div className="text-left text-xs font-bold text-gray-500 uppercase tracking-widest">
+                                                <p className="mb-1 text-black text-sm">Thank you for visiting V1 Gaming!</p>
+                                                <p>Keep Gaming. Keep Winning.</p>
+                                            </div>
+                                            <div className="text-center flex flex-col items-center">
+                                                <img src="V1 GAMING CAFE STAMP HEAD.png" alt="Stamp" className="w-24 h-24 object-contain mb-2 opacity-90" />
+                                                <p className="text-[10px] font-bold text-black border-t border-black pt-1 w-full uppercase">Authorized Signature</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                        
+                    </div>
+                </div>
+            );
+        };
+
+        const App = () => {
+            const [isAuthenticated, setIsAuthenticated] = useState(false);
+            return <div>{!isAuthenticated ? <LoginScreen onLogin={() => setIsAuthenticated(true)} /> : <Dashboard />}</div>;
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<ErrorBoundary><App /></ErrorBoundary>);
+    </script>
+</body>
+</html>
