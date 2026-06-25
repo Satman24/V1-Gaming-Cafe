@@ -18,4 +18,4 @@ Follow these steps to run this project on your machine:
 
 1. **Clone the repository:**
    ```bash
-   git clone <https://github.com/Satman24/V1-Gaming-Cafe/tree/main>
+   git clone [https://github.com/Satman24/V1-Gaming-Cafe.git](https://github.com/Satman24/V1-Gaming-Cafe.git)
